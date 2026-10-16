@@ -1,13 +1,15 @@
 import { Routes } from '@angular/router';
-import { Login } from './pages/login/login';
+import { authGuard, guestGuard, roleGuard } from './core/auth/auth.guards';
 import { MainLayout } from './layout/main-layout/main-layout';
+import { Login } from './pages/login/login';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
-  { path: 'login', component: Login },
+  { path: 'login', component: Login, canActivate: [guestGuard] },
   {
     path: '',
     component: MainLayout,
+    canActivate: [authGuard],
     children: [
       { path: 'dashboard', loadComponent: () => import('./pages/dashboard/dashboard').then((m) => m.Dashboard) },
       { path: 'aplicaciones', loadComponent: () => import('./pages/aplicaciones/aplicaciones').then((m) => m.Aplicaciones) },
@@ -15,7 +17,12 @@ export const routes: Routes = [
       { path: 'estimaciones', loadComponent: () => import('./pages/estimaciones/estimaciones').then((m) => m.Estimaciones) },
       { path: 'aprobaciones', loadComponent: () => import('./pages/aprobaciones/aprobaciones').then((m) => m.Aprobaciones) },
       { path: 'reportes', loadComponent: () => import('./pages/reportes/reportes').then((m) => m.Reportes) },
-      { path: 'administracion', loadComponent: () => import('./pages/administracion/administracion').then((m) => m.Administracion) },
+      {
+        path: 'administracion',
+        canActivate: [roleGuard],
+        data: { roles: ['COORDINADOR'] },
+        loadComponent: () => import('./pages/administracion/administracion').then((m) => m.Administracion),
+      },
     ],
   },
   { path: '**', redirectTo: 'login' },

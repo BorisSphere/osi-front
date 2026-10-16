@@ -1,7 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
 import { MAIN_MENU } from '../../core/config/menu.config';
-import { User } from '../../core/models/user';
 import { Header } from '../../shared/components/header/header';
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
 
@@ -11,10 +11,11 @@ import { Sidebar } from '../../shared/components/sidebar/sidebar';
   templateUrl: './main-layout.html',
 })
 export class MainLayout {
-  protected readonly menu = MAIN_MENU;
+  private readonly auth = inject(AuthService);
 
-  // Usuario de ejemplo hasta que exista la autenticación.
-  protected readonly user: User = { name: 'Pochita', role: 'Analista' };
+  protected readonly user = this.auth.displayUser;
+  /** Solo las opciones permitidas para el rol del usuario. */
+  protected readonly menu = computed(() => MAIN_MENU.filter((item) => this.auth.hasRole(item.roles)));
 
   protected readonly mobileMenuOpen = signal(false);
   protected readonly sidebarCollapsed = signal(false);
@@ -30,5 +31,9 @@ export class MainLayout {
 
   protected closeMobileMenu(): void {
     this.mobileMenuOpen.set(false);
+  }
+
+  protected logout(): void {
+    this.auth.logout();
   }
 }

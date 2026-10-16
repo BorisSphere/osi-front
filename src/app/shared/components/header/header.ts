@@ -12,4 +12,5 @@ import { UserMenu } from '../user-menu/user-menu';
 export class Header {
   readonly user = input.required<User>();
   readonly menuToggle = output<void>();
+  readonly logout = output<void>();
 }
