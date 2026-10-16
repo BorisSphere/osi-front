@@ -1,0 +1,21 @@
+<div class="min-h-dvh bg-slate-100">
+  <app-header [user]="user" (menuToggle)="toggleSidebar()" />
+
+  <!-- Fondo oscuro del menú en móvil -->
+  @if (mobileMenuOpen()) {
+    <div class="fixed inset-0 z-20 bg-black/40 lg:hidden" (click)="closeMobileMenu()"></div>
+  }
+
+  <app-sidebar
+    [items]="menu"
+    [mobileOpen]="mobileMenuOpen()"
+    [collapsed]="sidebarCollapsed()"
+    (itemSelected)="closeMobileMenu()"
+  />
+
+  <main class="pt-16 transition-[padding] duration-200" [class]="{ 'lg:pl-64': !sidebarCollapsed() }">
+    <div class="p-4 sm:p-6 lg:p-8">
+      <router-outlet />
+    </div>
+  </main>
+</div>

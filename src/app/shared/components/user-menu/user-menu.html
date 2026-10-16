@@ -1,0 +1,26 @@
+<button
+  type="button"
+  (click)="toggle()"
+  [attr.aria-expanded]="open()"
+  class="flex items-center gap-3 rounded-md px-2 py-1 text-white hover:bg-white/10"
+>
+  <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500 text-sm font-semibold">
+    {{ initials() }}
+  </span>
+  <span class="hidden text-left leading-tight sm:block">
+    <span class="block text-sm font-semibold">{{ user().name }}</span>
+    <span class="block text-xs text-slate-300">{{ user().role }}</span>
+  </span>
+  <app-icon name="chevron-down" class="h-4 w-4 text-slate-300" [strokeWidth]="2" />
+</button>
+
+@if (open()) {
+  <div class="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-lg bg-white py-1 text-slate-700 shadow-lg ring-1 ring-black/5">
+    <div class="border-b border-slate-100 px-4 py-2 sm:hidden">
+      <p class="text-sm font-semibold text-slate-900">{{ user().name }}</p>
+      <p class="text-xs text-slate-500">{{ user().role }}</p>
+    </div>
+    <a href="#" (click)="$event.preventDefault(); close()" class="block px-4 py-2 text-sm hover:bg-slate-100">Mi perfil</a>
+    <a routerLink="/login" (click)="close()" class="block px-4 py-2 text-sm text-red-600 hover:bg-slate-100">Cerrar sesión</a>
+  </div>
+}

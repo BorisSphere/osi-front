@@ -1,0 +1,16 @@
+<header class="fixed inset-x-0 top-0 z-40 flex h-16 items-center bg-[#0b2341] text-white shadow-md">
+  <div class="px-4 lg:w-64">
+    <app-logo hideTextOnMobile />
+  </div>
+
+  <button
+    type="button"
+    (click)="menuToggle.emit()"
+    aria-label="Abrir o cerrar menú"
+    class="flex rounded-md p-2 hover:bg-white/10 focus:ring-2 focus:ring-white/40 focus:outline-none"
+  >
+    <app-icon name="menu" class="h-6 w-6" [strokeWidth]="2" />
+  </button>
+
+  <app-user-menu class="ml-auto mr-4" [user]="user()" />
+</header>

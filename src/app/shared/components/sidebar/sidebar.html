@@ -1,0 +1,22 @@
+<aside
+  class="fixed top-16 bottom-0 left-0 z-30 w-64 overflow-y-auto bg-[#0f2c4f] transition-transform duration-200"
+  [class]="{
+    '-translate-x-full': !mobileOpen(),
+    'translate-x-0': mobileOpen(),
+    'lg:translate-x-0': !collapsed(),
+  }"
+>
+  <nav class="space-y-1 p-3">
+    @for (item of items(); track item.path) {
+      <a
+        [routerLink]="item.path"
+        routerLinkActive="!bg-blue-600 !text-white shadow"
+        (click)="itemSelected.emit(item)"
+        class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+      >
+        <app-icon [name]="item.icon" class="h-5 w-5" />
+        {{ item.label }}
+      </a>
+    }
+  </nav>
+</aside>

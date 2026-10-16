@@ -1,0 +1,37 @@
+<div class="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+  <p class="text-sm text-slate-600">Mostrando {{ from() }} a {{ to() }} de {{ total() }} registros</p>
+
+  <nav class="flex items-center gap-1" aria-label="Paginación">
+    <button
+      type="button"
+      (click)="goTo(page() - 1)"
+      [disabled]="page() === 1"
+      aria-label="Página anterior"
+      class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <app-icon name="chevron-left" class="h-4 w-4" [strokeWidth]="2" />
+    </button>
+
+    @for (p of pages(); track p) {
+      <button
+        type="button"
+        (click)="goTo(p)"
+        [attr.aria-current]="p === page() ? 'page' : null"
+        class="h-9 min-w-9 rounded-lg border px-3 text-sm font-medium"
+        [class]="p === page() ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'"
+      >
+        {{ p }}
+      </button>
+    }
+
+    <button
+      type="button"
+      (click)="goTo(page() + 1)"
+      [disabled]="page() === totalPages()"
+      aria-label="Página siguiente"
+      class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <app-icon name="chevron-right" class="h-4 w-4" [strokeWidth]="2" />
+    </button>
+  </nav>
+</div>
