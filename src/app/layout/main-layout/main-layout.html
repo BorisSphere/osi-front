@@ -1,5 +1,7 @@
 <div class="min-h-dvh bg-slate-100">
-  <app-header [user]="user" (menuToggle)="toggleSidebar()" />
+  @if (user(); as user) {
+    <app-header [user]="user" (menuToggle)="toggleSidebar()" (logout)="logout()" />
+  }
 
   <!-- Fondo oscuro del menú en móvil -->
   @if (mobileMenuOpen()) {
@@ -7,7 +9,7 @@
   }
 
   <app-sidebar
-    [items]="menu"
+    [items]="menu()"
     [mobileOpen]="mobileMenuOpen()"
     [collapsed]="sidebarCollapsed()"
     (itemSelected)="closeMobileMenu()"

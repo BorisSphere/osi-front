@@ -1,11 +1,10 @@
-import { Component, ElementRef, computed, inject, input, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, ElementRef, computed, inject, input, output, signal } from '@angular/core';
 import { User } from '../../../core/models/user';
 import { Icon } from '../icon/icon';
 
 @Component({
   selector: 'app-user-menu',
-  imports: [RouterLink, Icon],
+  imports: [Icon],
   templateUrl: './user-menu.html',
   host: {
     class: 'relative block',
@@ -16,6 +15,7 @@ export class UserMenu {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly user = input.required<User>();
+  readonly logout = output<void>();
 
   protected readonly open = signal(false);
 
@@ -33,6 +33,11 @@ export class UserMenu {
 
   protected close(): void {
     this.open.set(false);
+  }
+
+  protected onLogout(): void {
+    this.close();
+    this.logout.emit();
   }
 
   /** Cierra el desplegable al hacer clic fuera de él. */
