@@ -12,5 +12,5 @@
     <app-icon name="menu" class="h-6 w-6" [strokeWidth]="2" />
   </button>
 
-  <app-user-menu class="ml-auto mr-4" [user]="user()" />
+  <app-user-menu class="ml-auto mr-4" [user]="user()" (logout)="logout.emit()" />
 </header>
