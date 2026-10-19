@@ -1,3 +1,125 @@
-<app-page-header title="Estimaciones" />
+<app-page-header [title]="seleccionado() ? 'Estimación de horas - ' + seleccionado()!.codigo : 'Estimación de horas'">
+  <button app-button variant="secondary" type="button" (click)="volver()">
+    <app-icon name="chevron-left" class="h-4 w-4" [strokeWidth]="2.5" />
+    Volver
+  </button>
+</app-page-header>
 
-<app-empty-state class="mt-6" icon="calculator" message="Contenido de Estimaciones en construcción." />
+@if (requerimientos().length === 0) {
+  <app-empty-state class="mt-6" icon="calculator" message="No hay requerimientos pendientes de estimación." />
+} @else {
+  <!-- Requerimiento a estimar -->
+  <div class="mt-6 max-w-xl">
+    <p class="mb-2 text-sm font-medium text-slate-800">Requerimiento</p>
+    <app-select label="Requerimiento" [options]="opciones()" [(value)]="seleccionId" />
+    @if (seleccionado(); as req) {
+      <p class="mt-2 text-sm text-slate-500">
+        {{ req.aplicacion }} · Estado actual: <span class="font-medium text-slate-700">{{ req.estado }}</span>
+        @if (req.hhTotal !== null) {
+          · {{ req.hhTotal.toFixed(2) }} HH estimadas
+        }
+      </p>
+    }
+  </div>
+
+  <!-- Metodología -->
+  <section class="mt-6 overflow-hidden rounded-xl border border-blue-200 bg-blue-50/60">
+    <p class="border-b border-blue-200 px-4 py-3 text-sm font-medium text-blue-700">
+      Según metodología, la estimación se distribuye en los siguientes porcentajes:
+    </p>
+    <div class="grid grid-cols-2 divide-blue-200 md:grid-cols-4 md:divide-x">
+      @for (etapa of etapas; track etapa.key) {
+        <div class="px-4 py-4 text-center">
+          <p class="text-2xl font-bold text-blue-700">{{ etapa.porcentaje }}%</p>
+          <p class="mt-1 text-xs text-slate-600">{{ etapa.label }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Captura -->
+  <form class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end" (submit)="$event.preventDefault(); calcular()" novalidate>
+    <div class="sm:w-72">
+      <label for="hh-desarrollo" class="mb-2 block text-sm font-medium text-slate-800">
+        Horas de desarrollo <span class="text-red-600">*</span>
+      </label>
+      <input
+        id="hh-desarrollo"
+        type="text"
+        inputmode="decimal"
+        placeholder="Ej. 78"
+        [value]="hhDesarrollo()"
+        (input)="hhDesarrollo.set($any($event.target).value)"
+        [attr.aria-invalid]="!!error()"
+        aria-describedby="hh-ayuda"
+        class="w-full rounded-lg border px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 focus:outline-none"
+        [class]="error() ? 'border-red-500' : 'border-slate-300'"
+      />
+    </div>
+    <button app-button type="submit">
+      <app-icon name="calculator" class="h-4 w-4" [strokeWidth]="2" />
+      Calcular
+    </button>
+  </form>
+  <p id="hh-ayuda" class="mt-1 text-sm" [class]="error() ? 'text-red-600' : 'text-slate-500'">
+    {{ error() || 'HH de desarrollo + prueba unitaria. Equivalen al 78 % del total.' }}
+  </p>
+
+  @if (mensaje()) {
+    <div role="status" class="mt-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+      {{ mensaje() }}
+    </div>
+  }
+
+  @if (resultado(); as res) {
+    <div class="mt-6 grid gap-6 lg:grid-cols-[1fr_16rem]">
+      <!-- Detalle -->
+      <section>
+        <h2 class="mb-3 text-lg font-semibold text-slate-900">Detalle de la estimación</h2>
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-900">
+              <tr>
+                <th class="px-4 py-3 font-semibold">Actividad</th>
+                <th class="px-4 py-3 text-right font-semibold">Porcentaje</th>
+                <th class="px-4 py-3 text-right font-semibold">Horas</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-slate-700">
+              @for (etapa of etapas; track etapa.key) {
+                <tr>
+                  <td class="px-4 py-3">{{ etapa.label }}</td>
+                  <td class="px-4 py-3 text-right">{{ etapa.porcentaje }}%</td>
+                  <td class="px-4 py-3 text-right tabular-nums">{{ res[etapa.key].toFixed(2) }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot class="border-t-2 border-blue-200 bg-blue-50/60 font-semibold text-slate-900">
+              <tr>
+                <td class="px-4 py-3">Total</td>
+                <td class="px-4 py-3 text-right">100%</td>
+                <td class="px-4 py-3 text-right tabular-nums">{{ res.total.toFixed(2) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      <!-- Resultado -->
+      <section class="flex flex-col rounded-xl border border-blue-200 bg-blue-50/60 p-6">
+        <h2 class="text-lg font-semibold text-slate-900">Resultado</h2>
+        <div class="flex flex-1 flex-col items-center justify-center py-6 text-center">
+          <p class="text-4xl font-bold text-slate-900 tabular-nums">{{ res.total.toFixed(2) }}</p>
+          <p class="mt-2 text-sm text-slate-600">Horas totales estimadas</p>
+        </div>
+        @if (puedeGuardar()) {
+          <button app-button type="button" [disabled]="guardando()" (click)="guardar()">
+            {{ guardando() ? 'Guardando...' : 'Guardar estimación' }}
+          </button>
+        } @else {
+          <p class="text-center text-xs text-slate-500">Solo el rol Analista puede guardar estimaciones.</p>
+        }
+      </section>
+    </div>
+  }
+}
