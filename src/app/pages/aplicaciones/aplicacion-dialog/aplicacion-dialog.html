@@ -1,0 +1,93 @@
+<dialog
+  #dialog
+  aria-labelledby="app-dialog-title"
+  (close)="closed.emit()"
+  class="m-auto w-[calc(100%-2rem)] max-w-lg rounded-xl bg-white p-0 shadow-xl backdrop:bg-slate-900/50"
+>
+  <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+    <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+      <div>
+        <h2 id="app-dialog-title" class="text-lg font-semibold text-slate-900">{{ titulo() }}</h2>
+        @if (modo() === 'crear') {
+          <p class="mt-0.5 text-sm text-slate-500">El código se asigna automáticamente.</p>
+        }
+      </div>
+    </div>
+
+    <div class="space-y-4 px-5 py-5 sm:px-6">
+      @if (error()) {
+        <p role="alert" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ error() }}</p>
+      }
+
+      <div>
+        <label for="app-nombre" class="mb-1.5 block text-sm font-semibold text-slate-800">
+          Nombre @if (!soloLectura()) { <span class="text-red-600">*</span> }
+        </label>
+        <input id="app-nombre" type="text" maxlength="160" placeholder="Ej. Portal de Solicitudes" formControlName="nombre" [class]="inputClasses('nombre')" />
+        @if (invalid('nombre')) { <p class="mt-1 text-xs text-red-600">{{ mensaje('nombre', 'Ingrese un nombre.') }}</p> }
+      </div>
+
+      <div>
+        <label for="app-descripcion" class="mb-1.5 block text-sm font-semibold text-slate-800">
+          Descripción @if (!soloLectura()) { <span class="text-red-600">*</span> }
+        </label>
+        <textarea
+          id="app-descripcion"
+          rows="3"
+          maxlength="500"
+          placeholder="Describa la aplicación..."
+          formControlName="descripcion"
+          [class]="inputClasses('descripcion') + ' resize-y'"
+        ></textarea>
+        @if (invalid('descripcion')) { <p class="mt-1 text-xs text-red-600">{{ mensaje('descripcion', 'Ingrese una descripción.') }}</p> }
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="app-tec-actual" class="mb-1.5 block text-sm font-semibold text-slate-800">Tecnología actual</label>
+          <input
+            id="app-tec-actual"
+            type="text"
+            maxlength="160"
+            placeholder="Ej. Java 7 / JSP"
+            formControlName="tecnologiaActual"
+            [class]="inputClasses('tecnologiaActual')"
+          />
+          @if (invalid('tecnologiaActual')) { <p class="mt-1 text-xs text-red-600">{{ mensaje('tecnologiaActual', '') }}</p> }
+        </div>
+
+        <div>
+          <label for="app-tec-objetivo" class="mb-1.5 block text-sm font-semibold text-slate-800">Tecnología objetivo</label>
+          <input
+            id="app-tec-objetivo"
+            type="text"
+            maxlength="160"
+            placeholder="Ej. Java 17 / Angular 20"
+            formControlName="tecnologiaObjetivo"
+            [class]="inputClasses('tecnologiaObjetivo')"
+          />
+          @if (invalid('tecnologiaObjetivo')) { <p class="mt-1 text-xs text-red-600">{{ mensaje('tecnologiaObjetivo', '') }}</p> }
+        </div>
+      </div>
+
+      @if (modo() !== 'crear') {
+        <label class="flex items-center gap-3 text-sm text-slate-800">
+          <input type="checkbox" formControlName="activo" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600/30" />
+          Aplicación activa
+          <span class="text-slate-500">(las inactivas no se pueden elegir en nuevos requerimientos)</span>
+        </label>
+      }
+    </div>
+
+    <div class="flex flex-col-reverse gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+      <button app-button variant="secondary" type="button" class="w-full sm:w-auto" (click)="cerrar()">
+        {{ soloLectura() ? 'Cerrar' : 'Cancelar' }}
+      </button>
+      @if (!soloLectura()) {
+        <button app-button type="submit" class="w-full sm:w-auto" [disabled]="saving()">
+          {{ saving() ? 'Guardando...' : 'Guardar' }}
+        </button>
+      }
+    </div>
+  </form>
+</dialog>

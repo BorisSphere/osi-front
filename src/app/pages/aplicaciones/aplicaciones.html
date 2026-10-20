@@ -1,8 +1,10 @@
 <app-page-header title="Aplicaciones">
-  <button app-button type="button">
-    <app-icon name="plus" class="h-4 w-4" [strokeWidth]="2.5" />
-    Nueva aplicación
-  </button>
+  @if (puedeEditar) {
+    <button app-button type="button" (click)="abrir('crear')">
+      <app-icon name="plus" class="h-4 w-4" [strokeWidth]="2.5" />
+      Nueva aplicación
+    </button>
+  }
 </app-page-header>
 
 <!-- Filtros -->
@@ -10,6 +12,10 @@
   <app-search-input class="flex-1" placeholder="Buscar por nombre o descripción..." [(value)]="search" />
   <app-select class="sm:w-48" label="Filtrar por estado" [options]="estadoOptions" [(value)]="estado" />
 </div>
+
+@if (error()) {
+  <p role="alert" class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ error() }}</p>
+}
 
 <div class="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
   <!-- Tabla (tablet y escritorio) -->
@@ -26,24 +32,28 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-200 text-slate-700">
-        @for (app of paged(); track app.codigo) {
+        @for (app of paged(); track app.id) {
           <tr class="hover:bg-slate-50">
             <td class="px-4 py-3 whitespace-nowrap">{{ app.codigo }}</td>
             <td class="px-4 py-3 font-medium whitespace-nowrap text-slate-900">{{ app.nombre }}</td>
-            <td class="px-4 py-3">{{ app.descripcion }}</td>
-            <td class="px-4 py-3 whitespace-nowrap">{{ app.tecnologia }}</td>
-            <td class="px-4 py-3"><app-status-badge [label]="app.estado" [tone]="tone(app)" /></td>
+            <td class="px-4 py-3">{{ app.descripcion ?? '—' }}</td>
+            <td class="px-4 py-3 whitespace-nowrap">{{ app.tecnologiaActual ?? '—' }}</td>
+            <td class="px-4 py-3"><app-status-badge [label]="estadoLabel(app)" [tone]="tone(app)" /></td>
             <td class="px-4 py-3">
               <div class="flex gap-2">
-                <button app-icon-button icon="eye" [attr.aria-label]="'Ver ' + app.nombre"></button>
-                <button app-icon-button icon="pencil" [attr.aria-label]="'Editar ' + app.nombre"></button>
-                <button app-icon-button icon="trash" tone="danger" [attr.aria-label]="'Eliminar ' + app.nombre"></button>
+                <button app-icon-button icon="eye" [attr.aria-label]="'Ver ' + app.nombre" (click)="abrir('ver', app)"></button>
+                @if (puedeEditar) {
+                  <button app-icon-button icon="pencil" [attr.aria-label]="'Editar ' + app.nombre" (click)="abrir('editar', app)"></button>
+                  <button app-icon-button icon="trash" tone="danger" [attr.aria-label]="'Eliminar ' + app.nombre" (click)="eliminar(app)"></button>
+                }
               </div>
             </td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="6" class="px-4 py-10 text-center text-slate-500">No se encontraron aplicaciones.</td>
+            <td colspan="6" class="px-4 py-10 text-center text-slate-500">
+              {{ loading() ? 'Cargando aplicaciones...' : 'No se encontraron aplicaciones.' }}
+            </td>
           </tr>
         }
       </tbody>
@@ -52,27 +62,35 @@
 
   <!-- Tarjetas (móvil) -->
   <ul class="divide-y divide-slate-200 md:hidden">
-    @for (app of paged(); track app.codigo) {
+    @for (app of paged(); track app.id) {
       <li class="p-4">
         <div class="flex items-start justify-between gap-3">
           <div>
             <p class="text-xs text-slate-500">{{ app.codigo }}</p>
             <p class="font-semibold text-slate-900">{{ app.nombre }}</p>
           </div>
-          <app-status-badge [label]="app.estado" [tone]="tone(app)" />
+          <app-status-badge [label]="estadoLabel(app)" [tone]="tone(app)" />
         </div>
-        <p class="mt-2 text-sm text-slate-700">{{ app.descripcion }}</p>
-        <p class="mt-1 text-sm text-slate-500">{{ app.tecnologia }}</p>
+        @if (app.descripcion) { <p class="mt-2 text-sm text-slate-700">{{ app.descripcion }}</p> }
+        @if (app.tecnologiaActual) { <p class="mt-1 text-sm text-slate-500">{{ app.tecnologiaActual }}</p> }
         <div class="mt-3 flex gap-2">
-          <button app-icon-button icon="eye" [attr.aria-label]="'Ver ' + app.nombre"></button>
-          <button app-icon-button icon="pencil" [attr.aria-label]="'Editar ' + app.nombre"></button>
-          <button app-icon-button icon="trash" tone="danger" [attr.aria-label]="'Eliminar ' + app.nombre"></button>
+          <button app-icon-button icon="eye" [attr.aria-label]="'Ver ' + app.nombre" (click)="abrir('ver', app)"></button>
+          @if (puedeEditar) {
+            <button app-icon-button icon="pencil" [attr.aria-label]="'Editar ' + app.nombre" (click)="abrir('editar', app)"></button>
+            <button app-icon-button icon="trash" tone="danger" [attr.aria-label]="'Eliminar ' + app.nombre" (click)="eliminar(app)"></button>
+          }
         </div>
       </li>
     } @empty {
-      <li class="p-8 text-center text-slate-500">No se encontraron aplicaciones.</li>
+      <li class="p-8 text-center text-slate-500">
+        {{ loading() ? 'Cargando aplicaciones...' : 'No se encontraron aplicaciones.' }}
+      </li>
     }
   </ul>
 </div>
 
 <app-pagination class="mt-4" [total]="filtered().length" [pageSize]="pageSize" [(page)]="page" />
+
+@if (dialogo(); as d) {
+  <app-aplicacion-dialog [modo]="d.modo" [aplicacion]="d.aplicacion" (saved)="guardada()" (closed)="dialogo.set(null)" />
+}

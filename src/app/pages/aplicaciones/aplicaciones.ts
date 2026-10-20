@@ -1,6 +1,8 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { Aplicacion, EstadoAplicacion } from '../../core/models/aplicacion';
+import { ApiError } from '../../core/auth/auth.models';
+import { AuthService } from '../../core/auth/auth.service';
+import { Aplicacion } from '../../core/models/aplicacion';
 import { AplicacionService } from '../../core/services/aplicacion.service';
 import { Button } from '../../shared/components/button/button';
 import { Icon } from '../../shared/components/icon/icon';
@@ -10,19 +12,18 @@ import { Pagination } from '../../shared/components/pagination/pagination';
 import { SearchInput } from '../../shared/components/search-input/search-input';
 import { Select, SelectOption } from '../../shared/components/select/select';
 import { BadgeTone, StatusBadge } from '../../shared/components/status-badge/status-badge';
-
-const ESTADO_TONE: Record<EstadoAplicacion, BadgeTone> = {
-  Activa: 'success',
-  Inactiva: 'neutral',
-};
+import { AplicacionDialog, ModoDialogo } from './aplicacion-dialog/aplicacion-dialog';
 
 @Component({
   selector: 'app-aplicaciones',
-  imports: [PageHeader, Button, Icon, IconButton, SearchInput, Select, StatusBadge, Pagination],
+  imports: [PageHeader, Button, Icon, IconButton, SearchInput, Select, StatusBadge, Pagination, AplicacionDialog],
   templateUrl: './aplicaciones.html',
 })
 export class Aplicaciones {
-  private readonly aplicaciones = toSignal(inject(AplicacionService).list(), { initialValue: [] });
+  private readonly service = inject(AplicacionService);
+
+  /** Crear, editar y eliminar solo para COORDINADOR (el backend también lo valida). */
+  protected readonly puedeEditar = inject(AuthService).hasRole(['COORDINADOR']);
 
   protected readonly pageSize = 5;
   protected readonly estadoOptions: SelectOption[] = [
@@ -30,6 +31,11 @@ export class Aplicaciones {
     { value: 'Activa', label: 'Activas' },
     { value: 'Inactiva', label: 'Inactivas' },
   ];
+
+  private readonly aplicaciones = signal<Aplicacion[]>([]);
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly dialogo = signal<{ modo: ModoDialogo; aplicacion: Aplicacion | null } | null>(null);
 
   protected readonly search = signal('');
   protected readonly estado = signal('');
@@ -45,8 +51,8 @@ export class Aplicaciones {
     const estado = this.estado();
     return this.aplicaciones().filter(
       (app) =>
-        (!estado || app.estado === estado) &&
-        (!term || app.nombre.toLowerCase().includes(term) || app.descripcion.toLowerCase().includes(term)),
+        (!estado || this.estadoLabel(app) === estado) &&
+        (!term || app.nombre.toLowerCase().includes(term) || !!app.descripcion?.toLowerCase().includes(term)),
     );
   });
 
@@ -55,7 +61,61 @@ export class Aplicaciones {
     return this.filtered().slice(start, start + this.pageSize);
   });
 
+  constructor() {
+    this.cargar();
+  }
+
+  protected estadoLabel(app: Aplicacion): string {
+    return app.activo ? 'Activa' : 'Inactiva';
+  }
+
   protected tone(app: Aplicacion): BadgeTone {
-    return ESTADO_TONE[app.estado];
+    return app.activo ? 'success' : 'neutral';
+  }
+
+  protected abrir(modo: ModoDialogo, aplicacion: Aplicacion | null = null): void {
+    this.dialogo.set({ modo, aplicacion });
+  }
+
+  protected guardada(): void {
+    this.cargar();
+  }
+
+  protected eliminar(app: Aplicacion): void {
+    if (!confirm(`¿Eliminar la aplicación ${app.codigo} - ${app.nombre}?`)) return;
+
+    this.error.set(null);
+    this.service.remove(app.id).subscribe({
+      next: () => {
+        this.aplicaciones.update((list) => list.filter((a) => a.id !== app.id));
+        // Evita quedarse en una página que ya no existe.
+        const lastPage = Math.max(1, Math.ceil(this.filtered().length / this.pageSize));
+        if (this.page() > lastPage) this.page.set(lastPage);
+      },
+      error: (err: unknown) => this.error.set(this.errorMessage(err, 'No se pudo eliminar la aplicación.')),
+    });
+  }
+
+  private cargar(): void {
+    this.loading.set(true);
+    this.service.list().subscribe({
+      next: (apps) => {
+        this.aplicaciones.set(apps);
+        this.loading.set(false);
+      },
+      error: (err: unknown) => {
+        this.loading.set(false);
+        this.error.set(this.errorMessage(err, 'No se pudieron cargar las aplicaciones.'));
+      },
+    });
+  }
+
+  private errorMessage(err: unknown, porDefecto: string): string {
+    if (err instanceof HttpErrorResponse) {
+      if (err.status === 0) return 'No se pudo conectar con el servidor. Intente nuevamente.';
+      const body = err.error as ApiError | null;
+      if (body?.message) return body.message;
+    }
+    return porDefecto;
   }
 }

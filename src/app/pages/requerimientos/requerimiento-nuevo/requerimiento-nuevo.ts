@@ -36,7 +36,7 @@ export class RequerimientoNuevo {
     toOptions(
       'Seleccione una aplicación',
       this.aplicaciones()
-        .filter((app) => app.estado === 'Activa')
+        .filter((app) => app.activo)
         .map((app) => app.nombre),
     ),
   );
