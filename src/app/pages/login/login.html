@@ -3,14 +3,13 @@
   <div class="absolute inset-0 bg-gradient-to-r from-white/85 via-sky-50/75 to-blue-100/50"></div>
 
   <div
-    class="relative mx-auto flex min-h-dvh max-w-6xl flex-col items-center justify-center gap-12 px-6 py-10 lg:flex-row lg:justify-between lg:gap-16"
-  >
+    class="relative mx-auto flex min-h-dvh max-w-6xl flex-col items-center justify-center gap-12 px-6 py-10 lg:flex-row lg:justify-between lg:gap-16">
     <!-- Bloque de marca -->
     <section class="max-w-md text-slate-800">
       <app-logo size="lg" theme="dark" />
 
       <h1 class="mt-8 text-2xl leading-snug font-medium text-slate-800 sm:text-3xl">
-        Gestión de Requerimientos<br />de Modernización Tecnológica
+        Gestión de Requerimientos<br />de Modernización Tecnológica PRRR
       </h1>
 
       <p class="mt-6 text-lg leading-relaxed text-slate-700">
@@ -23,61 +22,44 @@
       <h2 class="text-2xl font-bold text-slate-900">Iniciar sesión</h2>
 
       @if (error()) {
-        <div role="alert" class="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {{ error() }}
-        </div>
+      <div role="alert" class="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {{ error() }}
+      </div>
       }
 
       <form class="mt-6 space-y-6" [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <div>
           <label for="usuario" class="mb-2 block text-sm font-medium text-slate-800">Usuario</label>
-          <input
-            id="usuario"
-            formControlName="username"
-            type="text"
-            [attr.aria-invalid]="invalid('username')"
-            autocomplete="username"
-            placeholder="Ingrese su usuario"
+          <input id="usuario" formControlName="username" type="text" [attr.aria-invalid]="invalid('username')"
+            autocomplete="username" placeholder="Ingrese su usuario"
             class="w-full rounded-md border px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 focus:outline-none"
-            [class]="invalid('username') ? 'border-red-500' : 'border-slate-300'"
-          />
+            [class]="invalid('username') ? 'border-red-500' : 'border-slate-300'" />
           @if (invalid('username')) {
-            <p class="mt-1 text-sm text-red-600">Ingrese su usuario.</p>
+          <p class="mt-1 text-sm text-red-600">Ingrese su usuario.</p>
           }
         </div>
 
         <div>
           <label for="contrasena" class="mb-2 block text-sm font-medium text-slate-800">Contraseña</label>
           <div class="relative">
-            <input
-              id="contrasena"
-              formControlName="password"
-              [attr.aria-invalid]="invalid('password')"
-              [type]="showPassword() ? 'text' : 'password'"
-              autocomplete="current-password"
+            <input id="contrasena" formControlName="password" [attr.aria-invalid]="invalid('password')"
+              [type]="showPassword() ? 'text' : 'password'" autocomplete="current-password"
               placeholder="Ingrese su contraseña"
               class="w-full rounded-md border py-3 pr-12 pl-4 text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 focus:outline-none"
-              [class]="invalid('password') ? 'border-red-500' : 'border-slate-300'"
-            />
-            <button
-              type="button"
-              (click)="togglePassword()"
+              [class]="invalid('password') ? 'border-red-500' : 'border-slate-300'" />
+            <button type="button" (click)="togglePassword()"
               [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-              class="absolute inset-y-0 right-0 flex items-center px-4 text-slate-600 hover:text-slate-900"
-            >
+              class="absolute inset-y-0 right-0 flex items-center px-4 text-slate-600 hover:text-slate-900">
               <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" class="h-5 w-5" [strokeWidth]="2" />
             </button>
           </div>
           @if (invalid('password')) {
-            <p class="mt-1 text-sm text-red-600">Ingrese su contraseña.</p>
+          <p class="mt-1 text-sm text-red-600">Ingrese su contraseña.</p>
           }
         </div>
 
-        <button
-          type="submit"
-          [disabled]="loading()"
-          class="w-full rounded-md bg-blue-700 py-3 font-medium text-white transition-colors hover:bg-blue-800 focus:ring-2 focus:ring-blue-600/40 focus:outline-none disabled:cursor-wait disabled:opacity-70"
-        >
+        <button type="submit" [disabled]="loading()"
+          class="w-full rounded-md bg-blue-700 py-3 font-medium text-white transition-colors hover:bg-blue-800 focus:ring-2 focus:ring-blue-600/40 focus:outline-none disabled:cursor-wait disabled:opacity-70">
           {{ loading() ? 'Ingresando...' : 'Ingresar' }}
         </button>
       </form>
