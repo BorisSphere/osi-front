@@ -19,7 +19,7 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/requerimientos/requerimiento-nuevo/requerimiento-nuevo').then((m) => m.RequerimientoNuevo),
       },
       {
-        path: 'requerimientos/:codigo',
+        path: 'requerimientos/:id',
         loadComponent: () =>
           import('./pages/requerimientos/requerimiento-detalle/requerimiento-detalle').then((m) => m.RequerimientoDetalle),
       },

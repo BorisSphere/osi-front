@@ -7,3 +7,10 @@ export interface Aplicacion {
   tecnologia: string;
   estado: EstadoAplicacion;
 }
+
+export interface AplicacionApi {
+  id: number;
+  codigo: string;
+  nombre: string;
+  activo: boolean;
+}

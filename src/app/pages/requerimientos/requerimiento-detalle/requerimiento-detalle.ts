@@ -1,7 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
+  ESTADO_LABEL,
   PRIORIDADES,
+  PRIORIDAD_LABEL,
   PrioridadRequerimiento,
   Requerimiento,
   TIPOS_REQUERIMIENTO,
@@ -13,18 +15,17 @@ import { EmptyState } from '../../../shared/components/empty-state/empty-state';
 import { Icon } from '../../../shared/components/icon/icon';
 import { Select, SelectOption } from '../../../shared/components/select/select';
 import { StatusBadge } from '../../../shared/components/status-badge/status-badge';
-import { ESTADO_TONE, PRIORIDAD_TONE, formatDate } from '../requerimiento-ui';
+import { ESTADO_TONE, PRIORIDAD_TONE, formatDate, mensajeError } from '../requerimiento-ui';
 
 const TABS = ['Resumen', 'Detalle técnico', 'Estimación', 'Aprobaciones', 'Historial'] as const;
 type Tab = (typeof TABS)[number];
 
 /** Posición de la etapa en curso según el estado (4 = todas completadas). */
 const ETAPA_ACTUAL = {
-  Registrado: 1,
-  'En estimación': 1,
-  'En aprobación': 2,
-  'En ejecución': 3,
-  Finalizado: 4,
+  REGISTRADO: 1,
+  ESTIMADO: 2,
+  APROBADO: 4,
+  RECHAZADO: 2,
 } as const;
 const ETAPAS = ['Registro', 'Estimación', 'Aprobación', 'Ejecución'];
 
@@ -44,15 +45,22 @@ export class RequerimientoDetalle {
 
   protected readonly tabs = TABS;
   protected readonly estadoTone = ESTADO_TONE;
+  protected readonly estadoLabel = ESTADO_LABEL;
   protected readonly prioridadTone = PRIORIDAD_TONE;
+  protected readonly prioridadLabel = PRIORIDAD_LABEL;
   protected readonly formatDate = formatDate;
   protected readonly tipoOptions = toOptions(TIPOS_REQUERIMIENTO);
-  protected readonly prioridadOptions = toOptions(PRIORIDADES);
+  protected readonly prioridadOptions: SelectOption[] = PRIORIDADES.map((p) => ({
+    value: p,
+    label: PRIORIDAD_LABEL[p],
+  }));
 
-  private readonly codigo = this.route.snapshot.paramMap.get('codigo') ?? '';
+  private readonly id = Number(this.route.snapshot.paramMap.get('id'));
 
-  /** Se vuelve a leer del servicio para reflejar los cambios guardados. */
-  protected readonly req = computed(() => this.service.items().find((r) => r.codigo === this.codigo));
+  protected readonly req = signal<Requerimiento | undefined>(undefined);
+  protected readonly loading = signal(true);
+  protected readonly saving = signal(false);
+  protected readonly error = signal('');
 
   protected readonly tab = signal<Tab>('Resumen');
   protected readonly editing = signal(this.route.snapshot.queryParamMap.has('editar'));
@@ -77,8 +85,21 @@ export class RequerimientoDetalle {
   });
 
   constructor() {
-    const r = this.req();
-    if (r && this.editing()) this.loadDraft(r);
+    if (!Number.isInteger(this.id)) {
+      this.loading.set(false);
+      return;
+    }
+    this.service.get(this.id).subscribe({
+      next: (r) => {
+        this.req.set(r);
+        if (this.editing()) this.loadDraft(r);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.error.set(mensajeError(err));
+        this.loading.set(false);
+      },
+    });
   }
 
   protected startEdit(): void {
@@ -86,28 +107,84 @@ export class RequerimientoDetalle {
     if (!r) return;
     this.loadDraft(r);
     this.triedSave.set(false);
+    this.error.set('');
     this.editing.set(true);
   }
 
   protected cancelEdit(): void {
+    this.error.set('');
     this.editing.set(false);
   }
 
   protected save(): void {
+    const r = this.req();
+    if (!r || this.saving()) return;
     this.triedSave.set(true);
     if (!this.titulo().trim() || !this.fechaRequerida() || !this.descripcion().trim()) {
       this.tab.set('Resumen');
       return;
     }
-    this.service.update(this.codigo, {
-      titulo: this.titulo().trim(),
-      tipo: this.tipo(),
-      prioridad: this.prioridad() as PrioridadRequerimiento,
-      fechaRequerida: this.fechaRequerida(),
-      descripcion: this.descripcion().trim(),
-      detalleTecnico: this.detalleTecnico().trim(),
+    this.saving.set(true);
+    this.error.set('');
+    this.service
+      .update(r.id, {
+        aplicacionId: r.aplicacionId,
+        titulo: this.titulo().trim(),
+        tipo: this.tipo(),
+        prioridad: this.prioridad() as PrioridadRequerimiento,
+        fechaRequerida: this.fechaRequerida(),
+        descripcion: this.descripcion().trim(),
+        detalleTecnico: this.detalleTecnico().trim(),
+      })
+      .subscribe({
+        next: (actualizado) => {
+          this.req.set(actualizado);
+          this.saving.set(false);
+          this.editing.set(false);
+        },
+        error: (err) => {
+          this.error.set(mensajeError(err));
+          this.saving.set(false);
+        },
+      });
+  }
+
+  /** Descarga con el Bearer (un enlace directo no lo enviaría) y dispara el guardado en el navegador. */
+  protected descargar(): void {
+    const r = this.req();
+    if (!r?.archivoNombre) return;
+    this.service.descargar(r.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = r.archivoNombre ?? 'archivo';
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (err) => this.error.set(mensajeError(err)),
     });
-    this.editing.set(false);
+  }
+
+  protected reemplazarArchivo(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    const r = this.req();
+    if (!archivo || !r || this.saving()) return;
+    this.saving.set(true);
+    this.error.set('');
+    this.service.adjuntar(r.id, archivo).subscribe({
+      next: (actualizado) => {
+        this.req.set(actualizado);
+        this.saving.set(false);
+        input.value = '';
+      },
+      error: (err) => {
+        this.error.set(mensajeError(err));
+        this.saving.set(false);
+        input.value = '';
+      },
+    });
   }
 
   protected isInvalid(value: string): boolean {

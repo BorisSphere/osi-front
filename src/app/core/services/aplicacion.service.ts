@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { Aplicacion } from '../models/aplicacion';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, map, of } from 'rxjs';
+import { Aplicacion, AplicacionApi } from '../models/aplicacion';
 
 // Datos de ejemplo hasta conectar con osi-back.
 const APLICACIONES_MOCK: Aplicacion[] = [
@@ -20,7 +21,14 @@ const APLICACIONES_MOCK: Aplicacion[] = [
 
 @Injectable({ providedIn: 'root' })
 export class AplicacionService {
+  private readonly http = inject(HttpClient);
+
   list(): Observable<Aplicacion[]> {
     return of(APLICACIONES_MOCK);
+  }
+
+  /** GET /api/aplicaciones: solo las activas, para elegir al registrar un requerimiento. */
+  listActivas(): Observable<AplicacionApi[]> {
+    return this.http.get<AplicacionApi[]>('/api/aplicaciones').pipe(map((lista) => lista.filter((a) => a.activo)));
   }
 }

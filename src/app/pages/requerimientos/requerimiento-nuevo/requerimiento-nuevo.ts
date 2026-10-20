@@ -1,14 +1,20 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { PRIORIDADES, PrioridadRequerimiento, TIPOS_REQUERIMIENTO } from '../../../core/models/requerimiento';
+import { map, of, switchMap, tap } from 'rxjs';
+import {
+  PRIORIDADES,
+  PRIORIDAD_LABEL,
+  PrioridadRequerimiento,
+  TIPOS_REQUERIMIENTO,
+} from '../../../core/models/requerimiento';
 import { AplicacionService } from '../../../core/services/aplicacion.service';
 import { RequerimientoService } from '../../../core/services/requerimiento.service';
-import { AuthService } from '../../../core/auth/auth.service';
 import { Button } from '../../../shared/components/button/button';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { Select, SelectOption } from '../../../shared/components/select/select';
 import { Stepper } from '../../../shared/components/stepper/stepper';
+import { mensajeError } from '../requerimiento-ui';
 
 const INPUT_CLASSES =
   'w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:outline-none ';
@@ -26,26 +32,27 @@ const toOptions = (placeholder: string, values: string[]): SelectOption[] => [
 export class RequerimientoNuevo {
   private readonly router = inject(Router);
   private readonly service = inject(RequerimientoService);
-  private readonly auth = inject(AuthService);
 
   readonly steps = ['Datos generales', 'Detalle técnico', 'Archivos', 'Confirmación'];
 
-  private readonly aplicaciones = toSignal(inject(AplicacionService).list(), { initialValue: [] });
+  private readonly aplicaciones = toSignal(inject(AplicacionService).listActivas(), { initialValue: [] });
 
-  readonly appOptions = computed(() =>
-    toOptions(
-      'Seleccione una aplicación',
-      this.aplicaciones()
-        .filter((app) => app.estado === 'Activa')
-        .map((app) => app.nombre),
-    ),
-  );
-  readonly priorityOptions = toOptions('Seleccione una prioridad', PRIORIDADES);
+  readonly appOptions = computed<SelectOption[]>(() => [
+    { value: '', label: 'Seleccione una aplicación' },
+    ...this.aplicaciones().map((app) => ({ value: String(app.id), label: app.nombre })),
+  ]);
+  readonly priorityOptions: SelectOption[] = [
+    { value: '', label: 'Seleccione una prioridad' },
+    ...PRIORIDADES.map((p) => ({ value: p, label: PRIORIDAD_LABEL[p] })),
+  ];
   readonly typeOptions = toOptions('Seleccione un tipo', TIPOS_REQUERIMIENTO);
 
   readonly step = signal(0);
   private readonly triedNext = signal(false);
+  readonly saving = signal(false);
+  readonly error = signal('');
 
+  /** Id de la aplicación elegida (como texto, por el componente Select). */
   readonly application = signal('');
   readonly priority = signal('');
   readonly title = signal('');
@@ -53,7 +60,13 @@ export class RequerimientoNuevo {
   readonly requestType = signal('');
   readonly description = signal('');
   readonly technicalDetails = signal('');
-  readonly files = signal<string[]>([]);
+  readonly file = signal<File | null>(null);
+  private createdId: number | null = null;
+
+  readonly applicationName = computed(
+    () => this.appOptions().find((o) => o.value === this.application())?.label ?? '',
+  );
+  readonly priorityName = computed(() => this.priorityOptions.find((o) => o.value === this.priority())?.label ?? '');
 
   readonly isLast = computed(() => this.step() === this.steps.length - 1);
 
@@ -106,23 +119,50 @@ export class RequerimientoNuevo {
     this.router.navigate(['/requerimientos']);
   }
 
-  selectFiles(event: Event): void {
+  selectFile(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.files.set(Array.from(input.files ?? []).map((file) => file.name));
+    this.file.set(input.files?.[0] ?? null);
   }
 
   submit(): void {
-    this.service.create({
-      aplicacion: this.application(),
-      titulo: this.title().trim(),
-      tipo: this.requestType(),
-      prioridad: this.priority() as PrioridadRequerimiento,
-      fechaRequerida: this.requiredDate(),
-      solicitante: this.auth.displayUser()?.name ?? '',
-      descripcion: this.description().trim(),
-      detalleTecnico: this.technicalDetails().trim(),
-      archivos: this.files(),
-    });
-    this.router.navigate(['/requerimientos']);
+    if (this.saving()) return;
+    this.saving.set(true);
+    this.error.set('');
+
+    // Si el registro ya se creó y solo falló la subida, el reintento sube el archivo sin duplicar el requerimiento.
+    const creado$ = this.createdId
+      ? of(this.createdId)
+      : this.service
+          .create({
+            aplicacionId: Number(this.application()),
+            titulo: this.title().trim(),
+            tipo: this.requestType(),
+            prioridad: this.priority() as PrioridadRequerimiento,
+            fechaRequerida: this.requiredDate(),
+            descripcion: this.description().trim(),
+            detalleTecnico: this.technicalDetails().trim(),
+          })
+          .pipe(map((r) => r.id));
+
+    creado$
+      .pipe(
+        tap((id) => (this.createdId = id)),
+        switchMap((id) => {
+          const archivo = this.file();
+          return archivo ? this.service.adjuntar(id, archivo) : of(null);
+        }),
+      )
+      .subscribe({
+        next: () => this.router.navigate(['/requerimientos']),
+        error: (err) => {
+          const detalle = mensajeError(err);
+          this.error.set(
+            this.createdId
+              ? `El requerimiento se registró, pero no se pudo adjuntar el archivo: ${detalle}`
+              : detalle,
+          );
+          this.saving.set(false);
+        },
+      });
   }
 }
