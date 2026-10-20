@@ -1,56 +1,25 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { EstadoRequerimiento } from '../models/estimacion';
-import { FiltroSeguimiento, Seguimiento, SeguimientoAplicacion } from '../models/reporte';
-import { LabMockStore } from './lab-mock.store';
-
-const vacio = (): Record<EstadoRequerimiento, number> => ({ REGISTRADO: 0, ESTIMADO: 0, APROBADO: 0, RECHAZADO: 0 });
+import { Observable, map } from 'rxjs';
+import { FiltroSeguimiento, Seguimiento } from '../models/reporte';
+import { DashboardService } from './dashboard.service';
 
 @Injectable({ providedIn: 'root' })
 export class ReporteService {
-  private readonly store = inject(LabMockStore);
+  private readonly http = inject(HttpClient);
+  private readonly dashboard = inject(DashboardService);
 
-  /**
-   * Seguimiento por rango de fechas de registro y aplicación.
-   * En el back: GET /api/reportes/seguimiento?desde=&hasta=&aplicacion= (no está en el
-   * contrato mínimo; hay que agregarlo).
-   */
+  /** GET /api/reportes/seguimiento?desde=&hasta=&aplicacion= (filtros vacíos se omiten). */
   seguimiento(filtro: FiltroSeguimiento = {}): Observable<Seguimiento> {
-    const reqs = this.store
-      .requerimientos()
-      .filter(
-        (r) =>
-          (!filtro.desde || r.fechaRegistro >= filtro.desde) &&
-          (!filtro.hasta || r.fechaRegistro <= filtro.hasta) &&
-          (!filtro.aplicacion || r.aplicacion === filtro.aplicacion),
-      );
-
-    const porEstado = vacio();
-    const porAplicacion = new Map<string, SeguimientoAplicacion>();
-    let hhAprobadas = 0;
-    for (const r of reqs) {
-      porEstado[r.estado]++;
-      const fila = porAplicacion.get(r.aplicacion) ?? { aplicacion: r.aplicacion, porEstado: vacio(), hhAprobadas: 0 };
-      fila.porEstado[r.estado]++;
-      if (r.estado === 'APROBADO') {
-        fila.hhAprobadas += r.hhTotal ?? 0;
-        hhAprobadas += r.hhTotal ?? 0;
-      }
-      porAplicacion.set(r.aplicacion, fila);
+    let params = new HttpParams();
+    for (const [clave, valor] of Object.entries(filtro)) {
+      if (valor) params = params.set(clave, valor);
     }
-
-    return of({
-      total: reqs.length,
-      porEstado,
-      hhAprobadas,
-      porAplicacion: [...porAplicacion.values()].sort(
-        (a, b) => b.hhAprobadas - a.hhAprobadas || a.aplicacion.localeCompare(b.aplicacion),
-      ),
-    });
+    return this.http.get<Seguimiento>('/api/reportes/seguimiento', { params });
   }
 
-  /** Aplicaciones con requerimientos (para el filtro). */
+  /** Códigos de aplicación para el filtro (los mismos que usa el dashboard). */
   aplicaciones(): Observable<string[]> {
-    return of([...new Set(this.store.requerimientos().map((r) => r.aplicacion))].sort());
+    return this.dashboard.resumen().pipe(map((r) => r.porAplicacion.map((a) => a.aplicacion)));
   }
 }

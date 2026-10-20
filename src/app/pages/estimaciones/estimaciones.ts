@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { RequerimientoResumen } from '../../core/models/estimacion';
 import { EstimacionService } from '../../core/services/estimacion.service';
+import { mensajeDeError } from '../../core/utils/api-error';
 import { DistribucionHH, PORCENTAJES, calcularDistribucion } from '../../core/utils/estimacion-calc';
 import { Button } from '../../shared/components/button/button';
 import { EmptyState } from '../../shared/components/empty-state/empty-state';
@@ -50,13 +51,28 @@ export class Estimaciones {
   protected readonly error = linkedSignal({ source: this.seleccionId, computation: () => '' });
   protected readonly mensaje = linkedSignal({ source: this.seleccionId, computation: () => '' });
   protected readonly guardando = signal(false);
+  protected readonly cargando = signal(true);
+  protected readonly errorCarga = signal('');
 
   constructor() {
-    this.service.listEstimables().subscribe((list) => {
-      this.requerimientos.set(list);
-      if (!list.some((r) => String(r.id) === this.seleccionId()) && list.length) {
-        this.seleccionId.set(String(list[0].id));
-      }
+    this.cargar();
+  }
+
+  private cargar(): void {
+    this.cargando.set(true);
+    this.service.listEstimables().subscribe({
+      next: (list) => {
+        this.requerimientos.set(list);
+        if (!list.some((r) => String(r.id) === this.seleccionId()) && list.length) {
+          this.seleccionId.set(String(list[0].id));
+        }
+        this.errorCarga.set('');
+        this.cargando.set(false);
+      },
+      error: (err) => {
+        this.errorCarga.set(mensajeDeError(err, 'No se pudieron cargar los requerimientos.'));
+        this.cargando.set(false);
+      },
     });
   }
 
@@ -84,14 +100,22 @@ export class Estimaciones {
     this.guardando.set(true);
     this.service.guardar(req.id, res.desarrollo).subscribe({
       next: (estimacion) => {
-        this.requerimientos.update((list) =>
-          list.map((r): RequerimientoResumen => (r.id === req.id ? { ...r, estado: 'ESTIMADO', hhTotal: estimacion.hhTotal } : r)),
+        // El cálculo que vale es el del back: se muestra el resultado guardado y se recarga la lista.
+        this.resultado.set({
+          analisis: estimacion.hhAnalisis,
+          desarrollo: estimacion.hhDesarrollo,
+          pruebas: estimacion.hhPruebas,
+          documentacion: estimacion.hhDocumentacion,
+          total: estimacion.hhTotal,
+        });
+        this.mensaje.set(
+          `Estimación guardada: ${estimacion.codigo} quedó en estado ${estimacion.estado} con ${estimacion.hhTotal.toFixed(2)} HH.`,
         );
-        this.mensaje.set(`Estimación guardada: ${req.codigo} quedó en estado ESTIMADO con ${estimacion.hhTotal.toFixed(2)} HH.`);
         this.guardando.set(false);
+        this.cargar();
       },
-      error: (err: Error) => {
-        this.error.set(err.message);
+      error: (err) => {
+        this.error.set(mensajeDeError(err, 'No se pudo guardar la estimación.'));
         this.guardando.set(false);
       },
     });

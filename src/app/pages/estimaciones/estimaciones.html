@@ -5,7 +5,11 @@
   </button>
 </app-page-header>
 
-@if (requerimientos().length === 0) {
+@if (cargando() && requerimientos().length === 0) {
+  <p class="mt-6 text-sm text-slate-500">Cargando requerimientos...</p>
+} @else if (errorCarga()) {
+  <div role="alert" class="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorCarga() }}</div>
+} @else if (requerimientos().length === 0) {
   <app-empty-state class="mt-6" icon="calculator" message="No hay requerimientos pendientes de estimación." />
 } @else {
   <!-- Requerimiento a estimar -->

@@ -1,13 +1,14 @@
-/** Estados del requerimiento según el motor de estados del laboratorio. */
+/** Estados del requerimiento (CK_LAB_REQ_ESTADO). */
 export type EstadoRequerimiento = 'REGISTRADO' | 'ESTIMADO' | 'APROBADO' | 'RECHAZADO';
 
 export type Prioridad = 'ALTA' | 'MEDIA' | 'BAJA';
 
-/** Datos del requerimiento que necesitan las pantallas de estimación y aprobación. */
+/** Fila de GET /api/estimaciones (bandeja de estimación y aprobación). */
 export interface RequerimientoResumen {
   id: number;
   codigo: string;
   titulo: string;
+  /** Código de la aplicación, p. ej. LAB-001. */
   aplicacion: string;
   prioridad: Prioridad;
   estado: EstadoRequerimiento;
@@ -21,6 +22,8 @@ export interface RequerimientoResumen {
 /** Respuesta de PUT /api/requerimientos/{id}/estimacion. */
 export interface Estimacion {
   requerimientoId: number;
+  codigo: string;
+  estado: EstadoRequerimiento;
   hhAnalisis: number;
   hhDesarrollo: number;
   hhPruebas: number;
@@ -32,4 +35,12 @@ export interface Estimacion {
 export interface Decision {
   decision: 'APROBADO' | 'RECHAZADO';
   motivo?: string;
+}
+
+/** Respuesta de PATCH /api/requerimientos/{id}/decision. */
+export interface DecisionResultado {
+  requerimientoId: number;
+  codigo: string;
+  estado: EstadoRequerimiento;
+  motivoRechazo: string | null;
 }
