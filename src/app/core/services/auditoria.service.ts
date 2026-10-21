@@ -13,6 +13,11 @@ export interface FiltroAuditoria {
 export class AuditoriaService {
   private readonly http = inject(HttpClient);
 
+  /** GET /api/requerimientos/{id}/auditoria */
+  historial(requerimientoId: number): Observable<EventoAuditoria[]> {
+    return this.http.get<EventoAuditoria[]>(`/api/requerimientos/${requerimientoId}/auditoria`);
+  }
+
   /** Historial global, del más reciente al más antiguo (GET /api/auditoria). Filtros vacíos se omiten. */
   list(filtro: FiltroAuditoria = {}): Observable<EventoAuditoria[]> {
     let params = new HttpParams();

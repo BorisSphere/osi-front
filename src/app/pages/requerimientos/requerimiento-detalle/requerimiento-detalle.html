@@ -40,7 +40,7 @@
           type="button"
           role="tab"
           [attr.aria-selected]="tab() === t"
-          (click)="tab.set(t)"
+          (click)="seleccionarTab(t)"
           class="-mb-px border-b-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap focus:outline-none"
           [class.border-blue-600]="tab() === t"
           [class.text-blue-700]="tab() === t"
@@ -188,16 +188,52 @@
         }
 
         @case ('Aprobaciones') {
-          <app-empty-state icon="check-circle" message="Aún no hay aprobaciones registradas." />
+          @if (cargandoAuditoria()) {
+            <p class="text-sm text-slate-500">Cargando aprobaciones...</p>
+          } @else if (errorAuditoria()) {
+            <p role="alert" class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorAuditoria() }}</p>
+          } @else if (eventosDecision().length) {
+            <ul class="space-y-3">
+              @for (evento of eventosDecision(); track evento.id) {
+                <li class="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+                  <p class="font-semibold text-slate-900">
+                    {{ evento.operacion === 'APROBACION' ? 'Requerimiento aprobado' : 'Requerimiento rechazado' }}
+                  </p>
+                  <p class="mt-1 text-slate-600">
+                    {{ evento.usuario }} · {{ evento.fecha | date: 'dd/MM/yyyy HH:mm' }}
+                  </p>
+                  @if (evento.detalle) { <p class="mt-2 whitespace-pre-wrap text-slate-700">{{ evento.detalle }}</p> }
+                </li>
+              }
+            </ul>
+          } @else if (r.estado === 'APROBADO') {
+            <app-empty-state icon="check-circle" message="El requerimiento figura como aprobado, pero no se encontró el evento de aprobación en su historial." />
+          } @else {
+            <app-empty-state icon="check-circle" message="Aún no hay aprobaciones registradas." />
+          }
         }
 
-        @default {
+        @case ('Historial') {
+          @if (cargandoAuditoria()) {
+            <p class="text-sm text-slate-500">Cargando historial...</p>
+          } @else if (errorAuditoria()) {
+            <p role="alert" class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorAuditoria() }}</p>
+          } @else {
           <ul class="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
-            <li class="text-slate-700">
-              <span class="font-semibold text-slate-900">{{ formatDate(r.fechaRegistro) }}</span>
-              — Registrado por {{ r.solicitante }}
-            </li>
+            @for (evento of eventosAuditoria(); track evento.id) {
+              <li class="border-b border-slate-100 py-3 last:border-0">
+                <p class="font-semibold text-slate-900">{{ evento.operacion }}</p>
+                <p class="mt-1 text-slate-600">{{ evento.usuario }} · {{ evento.fecha | date: 'dd/MM/yyyy HH:mm' }}</p>
+                @if (evento.detalle) { <p class="mt-1 whitespace-pre-wrap text-slate-700">{{ evento.detalle }}</p> }
+              </li>
+            } @empty {
+              <li class="text-slate-700">
+                <span class="font-semibold text-slate-900">{{ formatDate(r.fechaRegistro) }}</span>
+                — Registrado por {{ r.solicitante }}
+              </li>
+            }
           </ul>
+          }
         }
       }
     </section>
