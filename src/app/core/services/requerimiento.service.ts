@@ -1,121 +1,102 @@
-import { Injectable, signal } from '@angular/core';
-import { Requerimiento } from '../models/requerimiento';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
+import {
+  EstadoRequerimiento,
+  PrioridadRequerimiento,
+  Requerimiento,
+  RequerimientoForm,
+} from '../models/requerimiento';
 
-// Datos de ejemplo hasta conectar con osi-back.
-const REQUERIMIENTOS_MOCK: Requerimiento[] = [
-  {
-    codigo: 'REQ-2025-001',
-    aplicacion: 'SIGED',
-    titulo: 'Implementar módulo de reportes',
-    tipo: 'Evolutivo',
-    prioridad: 'Alta',
-    fechaRequerida: '2025-04-30',
-    fechaRegistro: '2025-04-01',
-    solicitante: 'María Torres',
-    descripcion: 'Desarrollo de nuevos reportes para la gestión documental.',
-    detalleTecnico: 'Reportes en PDF y Excel con filtros por fecha, área y tipo de documento.',
-    estado: 'En estimación',
-    archivos: [],
-  },
-  {
-    codigo: 'REQ-2025-002',
-    aplicacion: 'SICAM',
-    titulo: 'Corregir cálculo de coordenadas',
-    tipo: 'Correctivo',
-    prioridad: 'Crítica',
-    fechaRequerida: '2025-04-15',
-    fechaRegistro: '2025-04-03',
-    solicitante: 'Luis Quispe',
-    descripcion: 'Las coordenadas UTM se muestran desfasadas en el visor.',
-    detalleTecnico: 'Revisar la conversión de datum WGS84 a PSAD56.',
-    estado: 'En ejecución',
-    archivos: [],
-  },
-  {
-    codigo: 'REQ-2025-003',
-    aplicacion: 'FISE',
-    titulo: 'Integración con servicio de identidad',
-    tipo: 'Adaptativo',
-    prioridad: 'Media',
-    fechaRequerida: '2025-06-10',
-    fechaRegistro: '2025-04-07',
-    solicitante: 'Ana Rojas',
-    descripcion: 'Reemplazar el login propio por el servicio de identidad institucional.',
-    detalleTecnico: 'Integración OAuth2 / OpenID Connect.',
-    estado: 'En aprobación',
-    archivos: [],
-  },
-  {
-    codigo: 'REQ-2025-004',
-    aplicacion: 'GPA',
-    titulo: 'Nuevo filtro de expedientes',
-    tipo: 'Evolutivo',
-    prioridad: 'Baja',
-    fechaRequerida: '2025-07-01',
-    fechaRegistro: '2025-04-10',
-    solicitante: 'Carlos Díaz',
-    descripcion: 'Agregar filtro por estado y responsable en la bandeja de expedientes.',
-    detalleTecnico: '',
-    estado: 'Registrado',
-    archivos: [],
-  },
-  {
-    codigo: 'REQ-2025-005',
-    aplicacion: 'PVO',
-    titulo: 'Actualizar librería de captcha',
-    tipo: 'Correctivo',
-    prioridad: 'Media',
-    fechaRequerida: '2025-03-20',
-    fechaRegistro: '2025-03-05',
-    solicitante: 'María Torres',
-    descripcion: 'La versión actual del captcha quedó fuera de soporte.',
-    detalleTecnico: 'Migrar a reCAPTCHA v3.',
-    estado: 'Finalizado',
-    archivos: [],
-  },
-  {
-    codigo: 'REQ-2025-006',
-    aplicacion: 'MOVIL',
-    titulo: 'Modo sin conexión para inspecciones',
-    tipo: 'Evolutivo',
-    prioridad: 'Alta',
-    fechaRequerida: '2025-08-15',
-    fechaRegistro: '2025-04-12',
-    solicitante: 'Luis Quispe',
-    descripcion: 'Permitir registrar inspecciones sin cobertura y sincronizar después.',
-    detalleTecnico: 'Almacenamiento local con cola de sincronización.',
-    estado: 'Registrado',
-    archivos: [],
-  },
-];
+/** Respuesta de osi-back (RequerimientoResponse). */
+interface RequerimientoApi {
+  id: number;
+  codigo: string;
+  aplicacion: { id: number; codigo: string; nombre: string };
+  titulo: string;
+  descripcion: string;
+  prioridad: PrioridadRequerimiento;
+  estado: EstadoRequerimiento;
+  tipo: string | null;
+  fechaRequerida: string | null;
+  detalleTecnico: string | null;
+  archivoNombre: string | null;
+  creadoPor: string;
+  fechaCreacion: string;
+}
+
+/** Convierte un instante ISO a yyyy-MM-dd en hora local. */
+function fechaLocal(iso: string): string {
+  const d = new Date(iso);
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
+
+function aModelo(api: RequerimientoApi): Requerimiento {
+  return {
+    id: api.id,
+    codigo: api.codigo,
+    aplicacionId: api.aplicacion.id,
+    aplicacion: api.aplicacion.nombre,
+    titulo: api.titulo,
+    tipo: api.tipo ?? '',
+    prioridad: api.prioridad,
+    fechaRequerida: api.fechaRequerida ?? '',
+    fechaRegistro: fechaLocal(api.fechaCreacion),
+    solicitante: api.creadoPor,
+    descripcion: api.descripcion,
+    detalleTecnico: api.detalleTecnico ?? '',
+    estado: api.estado,
+    archivoNombre: api.archivoNombre,
+  };
+}
+
+/** Los campos vacíos se envían como null para que el backend los guarde como NULL. */
+function aCuerpo(form: RequerimientoForm) {
+  return { ...form, fechaRequerida: form.fechaRequerida || null };
+}
 
 @Injectable({ providedIn: 'root' })
 export class RequerimientoService {
-  private readonly _items = signal<Requerimiento[]>(REQUERIMIENTOS_MOCK);
-  readonly items = this._items.asReadonly();
+  private readonly http = inject(HttpClient);
+  private readonly url = '/api/requerimientos';
 
-  get(codigo: string): Requerimiento | undefined {
-    return this._items().find((r) => r.codigo === codigo);
+  /** GET /api/requerimientos?estado= */
+  list(estado?: EstadoRequerimiento): Observable<Requerimiento[]> {
+    const params: Record<string, string> = estado ? { estado } : {};
+    return this.http.get<RequerimientoApi[]>(this.url, { params }).pipe(map((lista) => lista.map(aModelo)));
   }
 
-  create(data: Omit<Requerimiento, 'codigo' | 'fechaRegistro' | 'estado'>): Requerimiento {
-    const year = new Date().getFullYear();
-    const max = this._items().reduce((acc, r) => Math.max(acc, Number(r.codigo.split('-').pop()) || 0), 0);
-    const nuevo: Requerimiento = {
-      ...data,
-      codigo: `REQ-${year}-${String(max + 1).padStart(3, '0')}`,
-      fechaRegistro: new Date().toISOString().slice(0, 10),
-      estado: 'Registrado',
-    };
-    this._items.update((list) => [nuevo, ...list]);
-    return nuevo;
+  /** GET /api/requerimientos/{id} */
+  get(id: number): Observable<Requerimiento> {
+    return this.http.get<RequerimientoApi>(`${this.url}/${id}`).pipe(map(aModelo));
   }
 
-  update(codigo: string, changes: Partial<Omit<Requerimiento, 'codigo'>>): void {
-    this._items.update((list) => list.map((r) => (r.codigo === codigo ? { ...r, ...changes } : r)));
+  /** POST /api/requerimientos */
+  create(form: RequerimientoForm): Observable<Requerimiento> {
+    return this.http.post<RequerimientoApi>(this.url, aCuerpo(form)).pipe(map(aModelo));
   }
 
-  remove(codigo: string): void {
-    this._items.update((list) => list.filter((r) => r.codigo !== codigo));
+  /** PUT /api/requerimientos/{id} */
+  update(id: number, form: RequerimientoForm): Observable<Requerimiento> {
+    return this.http.put<RequerimientoApi>(`${this.url}/${id}`, aCuerpo(form)).pipe(map(aModelo));
+  }
+
+  /** DELETE /api/requerimientos/{id} */
+  remove(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/${id}`);
+  }
+
+  /** POST /api/requerimientos/{id}/archivo (multipart); reemplaza el adjunto anterior. */
+  adjuntar(id: number, archivo: File): Observable<Requerimiento> {
+    const datos = new FormData();
+    datos.append('archivo', archivo);
+    return this.http.post<RequerimientoApi>(`${this.url}/${id}/archivo`, datos).pipe(map(aModelo));
+  }
+
+  /** GET /api/requerimientos/{id}/archivo; se pide como blob porque el Bearer no viaja en un enlace normal. */
+  descargar(id: number): Observable<Blob> {
+    return this.http.get(`${this.url}/${id}/archivo`, { responseType: 'blob' });
   }
 }

@@ -85,32 +85,32 @@
           for="req-files"
           class="flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed border-slate-300 px-4 py-8 text-center hover:border-blue-500 hover:bg-blue-50/40 sm:py-10"
         >
-          <span class="text-sm font-medium text-slate-800">Seleccione archivos para adjuntar</span>
-          <span class="mt-1 text-xs text-slate-500">Puede elegir más de un archivo</span>
-          <input id="req-files" type="file" multiple class="sr-only" (change)="selectFiles($event)" />
+          <span class="text-sm font-medium text-slate-800">Seleccione el archivo para adjuntar</span>
+          <span class="mt-1 text-xs text-slate-500">Un archivo, máximo 10 MB</span>
+          <input id="req-files" type="file" class="sr-only" (change)="selectFile($event)" />
         </label>
-        @if (files().length > 0) {
-          <ul class="mt-3 space-y-1 text-sm break-all text-slate-600">
-            @for (file of files(); track file) {
-              <li>{{ file }}</li>
-            }
-          </ul>
+        @if (file(); as f) {
+          <p class="mt-3 text-sm break-all text-slate-600">{{ f.name }}</p>
         }
       }
 
       @default {
         <p class="mb-4 text-sm text-slate-500">Revise la información antes de finalizar.</p>
         <dl class="grid gap-4 rounded-lg bg-slate-50 p-4 text-sm sm:grid-cols-2">
-          <div><dt class="font-medium text-slate-500">Aplicación</dt><dd class="mt-1 text-slate-900">{{ application() }}</dd></div>
-          <div><dt class="font-medium text-slate-500">Prioridad</dt><dd class="mt-1 text-slate-900">{{ priority() }}</dd></div>
+          <div><dt class="font-medium text-slate-500">Aplicación</dt><dd class="mt-1 text-slate-900">{{ applicationName() }}</dd></div>
+          <div><dt class="font-medium text-slate-500">Prioridad</dt><dd class="mt-1 text-slate-900">{{ priorityName() }}</dd></div>
           <div><dt class="font-medium text-slate-500">Título</dt><dd class="mt-1 break-words text-slate-900">{{ title() }}</dd></div>
           <div><dt class="font-medium text-slate-500">Fecha requerida</dt><dd class="mt-1 text-slate-900">{{ requiredDate() }}</dd></div>
           <div><dt class="font-medium text-slate-500">Tipo</dt><dd class="mt-1 text-slate-900">{{ requestType() }}</dd></div>
-          <div><dt class="font-medium text-slate-500">Archivos</dt><dd class="mt-1 text-slate-900">{{ files().length }}</dd></div>
+          <div><dt class="font-medium text-slate-500">Archivo</dt><dd class="mt-1 break-all text-slate-900">{{ file()?.name ?? 'Sin archivo' }}</dd></div>
           <div class="sm:col-span-2"><dt class="font-medium text-slate-500">Descripción</dt><dd class="mt-1 break-words whitespace-pre-wrap text-slate-900">{{ description() }}</dd></div>
           <div class="sm:col-span-2"><dt class="font-medium text-slate-500">Detalle técnico</dt><dd class="mt-1 break-words whitespace-pre-wrap text-slate-900">{{ technicalDetails() }}</dd></div>
         </dl>
       }
+    }
+
+    @if (error()) {
+      <p class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{{ error() }}</p>
     }
 
     <div class="mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:mt-8 sm:flex-row sm:justify-between">
@@ -120,7 +120,9 @@
         <button app-button variant="secondary" type="button" class="w-full sm:w-auto" (click)="cancel()">Cancelar</button>
       }
       @if (isLast()) {
-        <button app-button type="button" class="w-full sm:w-auto" (click)="submit()">Guardar</button>
+        <button app-button type="button" class="w-full sm:w-auto" [disabled]="saving()" (click)="submit()">
+          {{ saving() ? 'Guardando...' : 'Guardar' }}
+        </button>
       } @else {
         <button app-button type="button" class="w-full sm:w-auto" (click)="next()">Siguiente</button>
       }
