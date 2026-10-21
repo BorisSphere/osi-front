@@ -61,7 +61,7 @@
           </tr>
         } @empty {
           <tr>
-            <td colspan="5" class="px-4 py-10 text-center text-slate-500">No hay operaciones para los filtros seleccionados.</td>
+            <td colspan="5" class="px-4 py-10 text-center text-slate-500">{{ cargando() ? 'Cargando...' : 'No hay operaciones para los filtros seleccionados.' }}</td>
           </tr>
         }
       </tbody>
@@ -82,7 +82,7 @@
         <p class="mt-2 text-sm text-slate-700">{{ e.detalle }}</p>
       </li>
     } @empty {
-      <li class="p-8 text-center text-slate-500">No hay operaciones para los filtros seleccionados.</li>
+      <li class="p-8 text-center text-slate-500">{{ cargando() ? 'Cargando...' : 'No hay operaciones para los filtros seleccionados.' }}</li>
     }
   </ul>
 </div>

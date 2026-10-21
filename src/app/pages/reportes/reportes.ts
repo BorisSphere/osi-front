@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { EstadoRequerimiento } from '../../core/models/estimacion';
 import { Seguimiento } from '../../core/models/reporte';
 import { ReporteService } from '../../core/services/reporte.service';
+import { mensajeDeError } from '../../core/utils/api-error';
 import { Button } from '../../shared/components/button/button';
 import { PageHeader } from '../../shared/components/page-header/page-header';
 import { Select, SelectOption } from '../../shared/components/select/select';
@@ -51,10 +52,16 @@ export class Reportes {
     return filas.map((a) => ({ aplicacion: a.aplicacion, valor: a.hhAprobadas, ancho: (a.hhAprobadas / max) * 100 }));
   });
 
+  protected readonly cargando = signal(false);
+
   constructor() {
-    this.service.aplicaciones().subscribe((apps) =>
-      this.aplicacionOptions.set([{ value: '', label: 'Todas' }, ...apps.map((a) => ({ value: a, label: a }))]),
-    );
+    this.service.aplicaciones().subscribe({
+      next: (apps) =>
+        this.aplicacionOptions.set([{ value: '', label: 'Todas' }, ...apps.map((a) => ({ value: a, label: a }))]),
+      error: () => {
+        // Sin la lista se puede consultar igual con "Todas"; el error principal lo muestra consultar().
+      },
+    });
     this.consultar();
   }
 
@@ -64,8 +71,16 @@ export class Reportes {
       return;
     }
     this.error.set('');
-    this.service
-      .seguimiento({ desde: this.desde(), hasta: this.hasta(), aplicacion: this.aplicacion() })
-      .subscribe((datos) => this.datos.set(datos));
+    this.cargando.set(true);
+    this.service.seguimiento({ desde: this.desde(), hasta: this.hasta(), aplicacion: this.aplicacion() }).subscribe({
+      next: (datos) => {
+        this.datos.set(datos);
+        this.cargando.set(false);
+      },
+      error: (err) => {
+        this.error.set(mensajeDeError(err, 'No se pudo consultar el seguimiento.'));
+        this.cargando.set(false);
+      },
+    });
   }
 }

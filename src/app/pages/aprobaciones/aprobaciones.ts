@@ -3,6 +3,7 @@ import { Component, computed, inject, linkedSignal, signal } from '@angular/core
 import { AuthService } from '../../core/auth/auth.service';
 import { Decision, EstadoRequerimiento, Prioridad, RequerimientoResumen } from '../../core/models/estimacion';
 import { AprobacionService } from '../../core/services/aprobacion.service';
+import { mensajeDeError } from '../../core/utils/api-error';
 import { Button } from '../../shared/components/button/button';
 import { Icon } from '../../shared/components/icon/icon';
 import { PageHeader } from '../../shared/components/page-header/page-header';
@@ -91,6 +92,8 @@ export class Aprobaciones {
   protected readonly errorDialogo = signal('');
   protected readonly mensaje = signal('');
   protected readonly detalle = signal<RequerimientoResumen | null>(null);
+  protected readonly cargando = signal(true);
+  protected readonly errorCarga = signal('');
 
   constructor() {
     this.cargar();
@@ -122,11 +125,22 @@ export class Aprobaciones {
         );
         this.cargar();
       },
-      error: (err: Error) => this.errorDialogo.set(err.message),
+      error: (err) => this.errorDialogo.set(mensajeDeError(err, 'No se pudo registrar la decisión.')),
     });
   }
 
   private cargar(): void {
-    this.service.list().subscribe((list) => this.requerimientos.set(list));
+    this.cargando.set(true);
+    this.service.list().subscribe({
+      next: (list) => {
+        this.requerimientos.set(list);
+        this.errorCarga.set('');
+        this.cargando.set(false);
+      },
+      error: (err) => {
+        this.errorCarga.set(mensajeDeError(err, 'No se pudieron cargar los requerimientos.'));
+        this.cargando.set(false);
+      },
+    });
   }
 }

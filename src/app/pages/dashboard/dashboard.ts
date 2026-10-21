@@ -1,8 +1,9 @@
-import { AfterViewInit, Component, DestroyRef, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DashboardResumen } from '../../core/models/dashboard';
 import { EstadoRequerimiento } from '../../core/models/estimacion';
 import { DashboardService } from '../../core/services/dashboard.service';
+import { mensajeDeError } from '../../core/utils/api-error';
 import { Icon, IconName } from '../../shared/components/icon/icon';
 import { PageHeader } from '../../shared/components/page-header/page-header';
 
@@ -34,21 +35,30 @@ interface Kpi {
   imports: [PageHeader, Icon, RouterLink],
   templateUrl: './dashboard.html',
 })
-export class Dashboard implements AfterViewInit {
-  protected readonly resumen = toSignal(inject(DashboardService).resumen());
+export class Dashboard {
+  protected readonly resumen = signal<DashboardResumen | null>(null);
+  protected readonly error = signal('');
 
   private readonly carrusel = viewChild<ElementRef<HTMLElement>>('carrusel');
-  private readonly destroyRef = inject(DestroyRef);
 
-  ngAfterViewInit(): void {
-    const el = this.carrusel()?.nativeElement;
-    if (el) {
+  constructor() {
+    inject(DashboardService)
+      .resumen()
+      .subscribe({
+        next: (r) => this.resumen.set(r),
+        error: (err) => this.error.set(mensajeDeError(err, 'No se pudo cargar el resumen.')),
+      });
+
+    // El carrusel aparece recién cuando llegan los datos: ahí se calculan las flechas y se
+    // recalculan si cambia el ancho (ventana o menú lateral colapsado).
+    effect((onCleanup) => {
+      const el = this.carrusel()?.nativeElement;
+      if (!el) return;
       this.actualizarFlechas(el);
-      // Recalcula si cambia el ancho de la ventana o se colapsa el menú lateral.
       const observer = new ResizeObserver(() => this.actualizarFlechas(el));
       observer.observe(el);
-      this.destroyRef.onDestroy(() => observer.disconnect());
-    }
+      onCleanup(() => observer.disconnect());
+    });
   }
 
   protected readonly kpis = computed<Kpi[]>(() => {

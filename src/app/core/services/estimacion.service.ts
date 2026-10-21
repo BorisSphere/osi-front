@@ -1,47 +1,23 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
-import { AuthService } from '../auth/auth.service';
+import { Observable } from 'rxjs';
 import { EstadoRequerimiento, Estimacion, RequerimientoResumen } from '../models/estimacion';
-import { calcularDistribucion } from '../utils/estimacion-calc';
-import { LabMockStore } from './lab-mock.store';
 
 /** Estados en los que se puede (re)estimar: una estimación rechazada puede corregirse. */
-const ESTIMABLES: ReadonlySet<EstadoRequerimiento> = new Set(['REGISTRADO', 'ESTIMADO', 'RECHAZADO']);
+const ESTIMABLES: EstadoRequerimiento[] = ['REGISTRADO', 'ESTIMADO', 'RECHAZADO'];
 
 @Injectable({ providedIn: 'root' })
 export class EstimacionService {
-  private readonly store = inject(LabMockStore);
-  private readonly auth = inject(AuthService);
+  private readonly http = inject(HttpClient);
 
-  /** Requerimientos que pueden estimarse. */
+  /** Requerimientos que pueden estimarse (GET /api/estimaciones). */
   listEstimables(): Observable<RequerimientoResumen[]> {
-    return of(this.store.requerimientos().filter((r) => ESTIMABLES.has(r.estado)));
+    const params = ESTIMABLES.reduce((p, estado) => p.append('estado', estado), new HttpParams());
+    return this.http.get<RequerimientoResumen[]>('/api/estimaciones', { params });
   }
 
-  /** PUT /api/requerimientos/{id}/estimacion */
+  /** Calcula y guarda en el back; el back aplica la regla 5/78/15/2 y el permiso de ANALISTA. */
   guardar(requerimientoId: number, hhDesarrollo: number): Observable<Estimacion> {
-    const req = this.store.requerimientos().find((r) => r.id === requerimientoId);
-    if (!req) {
-      return throwError(() => new Error('El requerimiento no existe.'));
-    }
-    if (!(hhDesarrollo > 0)) {
-      return throwError(() => new Error('Las horas de desarrollo deben ser mayores a cero.'));
-    }
-    const d = calcularDistribucion(hhDesarrollo);
-    this.store.actualizar(requerimientoId, { estado: 'ESTIMADO', hhTotal: d.total, motivoRechazo: null });
-    this.store.registrarEvento(
-      this.auth.usuario()?.username ?? 'desconocido',
-      'ESTIMACION',
-      req.codigo,
-      `Estimó ${d.total.toFixed(2)} HH para ${req.codigo}`,
-    );
-    return of({
-      requerimientoId,
-      hhAnalisis: d.analisis,
-      hhDesarrollo: d.desarrollo,
-      hhPruebas: d.pruebas,
-      hhDocumentacion: d.documentacion,
-      hhTotal: d.total,
-    });
+    return this.http.put<Estimacion>(`/api/requerimientos/${requerimientoId}/estimacion`, { hhDesarrollo });
   }
 }

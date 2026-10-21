@@ -1,50 +1,25 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
-import { AuthService } from '../auth/auth.service';
-import { Decision, RequerimientoResumen } from '../models/estimacion';
-import { LabMockStore } from './lab-mock.store';
+import { Observable } from 'rxjs';
+import { Decision, DecisionResultado, EstadoRequerimiento, RequerimientoResumen } from '../models/estimacion';
 
-const MOTIVO_MIN = 10;
+/** Estados que aparecen en la bandeja de aprobación (pendientes, aprobados y rechazados). */
+const BANDEJA: EstadoRequerimiento[] = ['ESTIMADO', 'APROBADO', 'RECHAZADO'];
 
 @Injectable({ providedIn: 'root' })
 export class AprobacionService {
-  private readonly store = inject(LabMockStore);
-  private readonly auth = inject(AuthService);
+  private readonly http = inject(HttpClient);
 
-  /** Requerimientos estimados, aprobados y rechazados (los que aparecen en la bandeja). */
   list(): Observable<RequerimientoResumen[]> {
-    return of(this.store.requerimientos().filter((r) => r.estado !== 'REGISTRADO'));
+    const params = BANDEJA.reduce((p, estado) => p.append('estado', estado), new HttpParams());
+    return this.http.get<RequerimientoResumen[]>('/api/estimaciones', { params });
   }
 
   /**
-   * PATCH /api/requerimientos/{id}/decision
-   * Replica las reglas del back: solo APROBADOR (403), solo requerimientos ESTIMADO con
-   * estimación positiva y motivo obligatorio para rechazar (400).
+   * PATCH /api/requerimientos/{id}/decision. Las reglas las aplica el back: solo APROBADOR (403),
+   * solo requerimientos ESTIMADO (409) y motivo obligatorio para rechazar (400).
    */
-  decidir(requerimientoId: number, body: Decision): Observable<RequerimientoResumen> {
-    if (!this.auth.hasRole(['APROBADOR'])) {
-      return throwError(() => new Error('403 · Solo el rol Aprobador puede aprobar o rechazar.'));
-    }
-    const req = this.store.requerimientos().find((r) => r.id === requerimientoId);
-    if (!req) {
-      return throwError(() => new Error('El requerimiento no existe.'));
-    }
-    if (req.estado !== 'ESTIMADO' || !req.hhTotal || req.hhTotal <= 0) {
-      return throwError(() => new Error('Solo se puede decidir sobre un requerimiento ESTIMADO con estimación positiva.'));
-    }
-    const motivo = body.motivo?.trim() ?? '';
-    if (body.decision === 'RECHAZADO' && motivo.length < MOTIVO_MIN) {
-      return throwError(() => new Error(`El motivo del rechazo es obligatorio (mínimo ${MOTIVO_MIN} caracteres).`));
-    }
-
-    const rechazo = body.decision === 'RECHAZADO';
-    this.store.actualizar(req.id, { estado: body.decision, motivoRechazo: rechazo ? motivo : null });
-    this.store.registrarEvento(
-      this.auth.usuario()?.username ?? 'desconocido',
-      rechazo ? 'RECHAZO' : 'APROBACION',
-      req.codigo,
-      rechazo ? `Rechazó requerimiento ${req.codigo}. Motivo: ${motivo}` : `Aprobó requerimiento ${req.codigo}`,
-    );
-    return of(this.store.requerimientos().find((r) => r.id === req.id)!);
+  decidir(requerimientoId: number, body: Decision): Observable<DecisionResultado> {
+    return this.http.patch<DecisionResultado>(`/api/requerimientos/${requerimientoId}/decision`, body);
   }
 }

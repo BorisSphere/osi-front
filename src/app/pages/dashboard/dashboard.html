@@ -1,5 +1,11 @@
 <app-page-header title="Dashboard" subtitle="Resumen de solicitudes, estados y esfuerzo aprobado." />
 
+@if (error()) {
+  <div role="alert" class="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ error() }}</div>
+} @else if (!resumen()) {
+  <p class="mt-6 text-sm text-slate-500">Cargando resumen...</p>
+}
+
 @if (resumen(); as r) {
   <!-- KPIs: carrusel horizontal (arrastrar con el mouse, flechas o Shift + rueda) -->
   <div class="relative mt-6">
