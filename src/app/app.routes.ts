@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard, roleGuard } from './core/auth/auth.guards';
+import { authGuard, guestGuard, permisoGuard } from './core/auth/auth.guards';
 import { MainLayout } from './layout/main-layout/main-layout';
 import { Login } from './pages/login/login';
 
@@ -16,6 +16,8 @@ export const routes: Routes = [
       { path: 'requerimientos', loadComponent: () => import('./pages/requerimientos/requerimientos').then((m) => m.Requerimientos) },
       {
         path: 'requerimientos/nuevo',
+        canActivate: [permisoGuard],
+        data: { permiso: 'REQUERIMIENTO_CREAR' },
         loadComponent: () => import('./pages/requerimientos/requerimiento-nuevo/requerimiento-nuevo').then((m) => m.RequerimientoNuevo),
       },
       {
@@ -28,8 +30,8 @@ export const routes: Routes = [
       { path: 'reportes', loadComponent: () => import('./pages/reportes/reportes').then((m) => m.Reportes) },
       {
         path: 'administracion',
-        canActivate: [roleGuard],
-        data: { roles: ['COORDINADOR'] },
+        canActivate: [permisoGuard],
+        data: { permiso: 'AUDITORIA_VER' },
         loadComponent: () => import('./pages/administracion/administracion').then((m) => m.Administracion),
       },
     ],

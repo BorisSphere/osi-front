@@ -36,7 +36,7 @@ export class Aprobaciones {
   private readonly auth = inject(AuthService);
 
   /** Solo el APROBADOR decide; el resto solo consulta. */
-  protected readonly puedeDecidir = computed(() => this.auth.hasRole(['APROBADOR']));
+  protected readonly puedeDecidir = computed(() => this.auth.can('REQUERIMIENTO_APROBAR'));
 
   protected readonly pageSize = 5;
   protected readonly pestanas: { value: Pestana; label: string }[] = [

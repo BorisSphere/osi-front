@@ -23,7 +23,7 @@ export class Aplicaciones {
   private readonly service = inject(AplicacionService);
 
   /** Crear, editar y eliminar solo para COORDINADOR (el backend también lo valida). */
-  protected readonly puedeEditar = inject(AuthService).hasRole(['COORDINADOR']);
+  protected readonly puedeEditar = inject(AuthService).can('CATALOGO_GESTIONAR');
 
   protected readonly pageSize = 5;
   protected readonly estadoOptions: SelectOption[] = [

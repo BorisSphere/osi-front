@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, catchError, finalize, firstValueFrom, map, of, shareReplay, tap, throwError } from 'rxjs';
-import { ROL_LABEL, Rol, User, UsuarioAuth } from '../models/user';
+import { Permiso, ROL_LABEL, User, UsuarioAuth } from '../models/user';
 import { LoginResponse } from './auth.models';
 
 /**
@@ -80,9 +80,18 @@ export class AuthService {
     this.router.navigate(['/login'], returnUrl ? { queryParams: { returnUrl } } : undefined);
   }
 
-  hasRole(roles: readonly Rol[] | undefined): boolean {
-    const usuario = this.usuario();
-    return !!usuario && (!roles?.length || roles.includes(usuario.rol));
+  private readonly permisos = computed(() => new Set(this.usuario()?.permisos ?? []));
+
+  /**
+   * ¿El usuario tiene el permiso? Con una lista, basta con uno de ellos; sin permisos, solo exige sesión.
+   * Solo adapta la interfaz: quien protege de verdad es el backend.
+   */
+  can(permiso: Permiso | readonly Permiso[] | undefined): boolean {
+    if (!this.isAuthenticated()) {
+      return false;
+    }
+    const requeridos = permiso === undefined ? [] : typeof permiso === 'string' ? [permiso] : permiso;
+    return !requeridos.length || requeridos.some((p) => this.permisos().has(p));
   }
 
   private setSession(response: LoginResponse): void {

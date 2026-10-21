@@ -11,10 +11,11 @@ import { SearchInput } from '../../shared/components/search-input/search-input';
 import { Select, SelectOption } from '../../shared/components/select/select';
 import { StatusBadge } from '../../shared/components/status-badge/status-badge';
 import { ESTADO_TONE, PRIORIDAD_TONE, formatDate, mensajeError } from './requerimiento-ui';
+import { CanDirective } from '../../shared/directives/can.directive';
 
 @Component({
   selector: 'app-requerimientos',
-  imports: [RouterLink, PageHeader, Button, Icon, IconButton, SearchInput, Select, StatusBadge, Pagination],
+  imports: [RouterLink, CanDirective, PageHeader, Button, Icon, IconButton, SearchInput, Select, StatusBadge, Pagination],
   templateUrl: './requerimientos.html',
 })
 export class Requerimientos {

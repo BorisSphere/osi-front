@@ -1,5 +1,5 @@
 <app-page-header title="Requerimientos">
-  <a app-button routerLink="nuevo">
+  <a *appCan="'REQUERIMIENTO_CREAR'" app-button routerLink="nuevo">
     <app-icon name="plus" class="h-4 w-4" [strokeWidth]="2.5" />
     Nuevo
   </a>
@@ -41,8 +41,10 @@
             <td class="px-4 py-3">
               <div class="flex gap-2">
                 <button app-icon-button icon="eye" [attr.aria-label]="'Ver ' + r.codigo" (click)="ver(r)"></button>
-                <button app-icon-button icon="pencil" [attr.aria-label]="'Editar ' + r.codigo" (click)="editar(r)"></button>
-                                <button app-icon-button icon="trash" tone="danger" [attr.aria-label]="'Eliminar ' + r.codigo" (click)="eliminar(r)"></button>
+                @if (r.estado !== 'APROBADO') {
+                  <button *appCan="'REQUERIMIENTO_MODIFICAR'" app-icon-button icon="pencil" [attr.aria-label]="'Editar ' + r.codigo" (click)="editar(r)"></button>
+                }
+                                <button *appCan="'REQUERIMIENTO_ELIMINAR'" app-icon-button icon="trash" tone="danger" [attr.aria-label]="'Eliminar ' + r.codigo" (click)="eliminar(r)"></button>
                               </div>
                             </td>
           </tr>
@@ -74,8 +76,10 @@
         </div>
         <div class="mt-3 flex gap-2">
           <button app-icon-button icon="eye" [attr.aria-label]="'Ver ' + r.codigo" (click)="ver(r)"></button>
-          <button app-icon-button icon="pencil" [attr.aria-label]="'Editar ' + r.codigo" (click)="editar(r)"></button>
-                    <button app-icon-button icon="trash" tone="danger" [attr.aria-label]="'Eliminar ' + r.codigo" (click)="eliminar(r)"></button>
+          @if (r.estado !== 'APROBADO') {
+                  <button *appCan="'REQUERIMIENTO_MODIFICAR'" app-icon-button icon="pencil" [attr.aria-label]="'Editar ' + r.codigo" (click)="editar(r)"></button>
+                }
+                    <button *appCan="'REQUERIMIENTO_ELIMINAR'" app-icon-button icon="trash" tone="danger" [attr.aria-label]="'Eliminar ' + r.codigo" (click)="eliminar(r)"></button>
                   </div>
                 </li>
     } @empty {

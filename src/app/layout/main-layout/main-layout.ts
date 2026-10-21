@@ -14,8 +14,8 @@ export class MainLayout {
   private readonly auth = inject(AuthService);
 
   protected readonly user = this.auth.displayUser;
-  /** Solo las opciones permitidas para el rol del usuario. */
-  protected readonly menu = computed(() => MAIN_MENU.filter((item) => this.auth.hasRole(item.roles)));
+  /** Solo las opciones que permiten los permisos del usuario. */
+  protected readonly menu = computed(() => MAIN_MENU.filter((item) => this.auth.can(item.permiso)));
 
   protected readonly mobileMenuOpen = signal(false);
   protected readonly sidebarCollapsed = signal(false);

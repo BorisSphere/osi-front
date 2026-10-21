@@ -7,5 +7,5 @@ export const MAIN_MENU: MenuItem[] = [
   { label: 'Estimaciones', path: '/estimaciones', icon: 'calculator' },
   { label: 'Aprobaciones', path: '/aprobaciones', icon: 'check-circle' },
   { label: 'Reportes', path: '/reportes', icon: 'chart' },
-  { label: 'Administración', path: '/administracion', icon: 'settings', roles: ['COORDINADOR'] },
+  { label: 'Administración', path: '/administracion', icon: 'settings', permiso: 'AUDITORIA_VER' },
 ];

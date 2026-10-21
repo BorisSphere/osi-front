@@ -11,10 +11,13 @@
     </div>
 
     @if (!editing()) {
-      <button app-button type="button" class="w-full sm:w-auto" (click)="startEdit()">
-        <app-icon name="pencil" class="h-4 w-4" [strokeWidth]="2" />
-        Editar
-      </button>
+      <!-- Solo solicitudes abiertas: el backend rechaza modificar un requerimiento APROBADO -->
+      @if (r.estado !== 'APROBADO') {
+        <button *appCan="'REQUERIMIENTO_MODIFICAR'" app-button type="button" class="w-full sm:w-auto" (click)="startEdit()">
+          <app-icon name="pencil" class="h-4 w-4" [strokeWidth]="2" />
+          Editar
+        </button>
+      }
     } @else {
       <div class="flex flex-col-reverse gap-2 sm:flex-row">
         <button app-button variant="secondary" type="button" class="w-full sm:w-auto" [disabled]="saving()" (click)="cancelEdit()">Cancelar</button>

@@ -16,6 +16,7 @@ import { Icon } from '../../../shared/components/icon/icon';
 import { Select, SelectOption } from '../../../shared/components/select/select';
 import { StatusBadge } from '../../../shared/components/status-badge/status-badge';
 import { ESTADO_TONE, PRIORIDAD_TONE, formatDate, mensajeError } from '../requerimiento-ui';
+import { CanDirective } from '../../../shared/directives/can.directive';
 
 const TABS = ['Resumen', 'Detalle técnico', 'Estimación', 'Aprobaciones', 'Historial'] as const;
 type Tab = (typeof TABS)[number];
@@ -36,7 +37,7 @@ const toOptions = (values: string[]): SelectOption[] => values.map((value) => ({
 
 @Component({
   selector: 'app-requerimiento-detalle',
-  imports: [RouterLink, Button, Icon, Select, StatusBadge, ApprovalFlow, EmptyState],
+  imports: [RouterLink, CanDirective, Button, Icon, Select, StatusBadge, ApprovalFlow, EmptyState],
   templateUrl: './requerimiento-detalle.html',
 })
 export class RequerimientoDetalle {

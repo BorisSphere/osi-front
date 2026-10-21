@@ -32,7 +32,7 @@ export class Estimaciones {
   ] as const;
 
   /** Según la matriz de permisos, solo el ANALISTA guarda estimaciones. */
-  protected readonly puedeGuardar = computed(() => this.auth.hasRole(['ANALISTA']));
+  protected readonly puedeGuardar = computed(() => this.auth.can('ESTIMACION_GUARDAR'));
 
   protected readonly requerimientos = signal<RequerimientoResumen[]>([]);
   protected readonly opciones = computed<SelectOption[]>(() =>
