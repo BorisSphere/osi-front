@@ -61,6 +61,7 @@ export class RequerimientoNuevo {
   readonly description = signal('');
   readonly technicalDetails = signal('');
   readonly file = signal<File | null>(null);
+  readonly dragging = signal(false);
   private createdId: number | null = null;
 
   readonly applicationName = computed(
@@ -122,6 +123,19 @@ export class RequerimientoNuevo {
   selectFile(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.file.set(input.files?.[0] ?? null);
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.dragging.set(true);
+  }
+
+  /** Sin preventDefault el navegador abre el archivo soltado en lugar de entregarlo a la página. */
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.dragging.set(false);
+    const archivo = event.dataTransfer?.files?.[0];
+    if (archivo) this.file.set(archivo);
   }
 
   submit(): void {

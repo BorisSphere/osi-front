@@ -83,7 +83,13 @@
       @case (2) {
         <label
           for="req-files"
-          class="flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed border-slate-300 px-4 py-8 text-center hover:border-blue-500 hover:bg-blue-50/40 sm:py-10"
+          class="flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed px-4 py-8 text-center hover:border-blue-500 hover:bg-blue-50/40 sm:py-10"
+          [class.border-blue-500]="dragging()"
+          [class.bg-blue-50]="dragging()"
+          [class.border-slate-300]="!dragging()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="dragging.set(false)"
+          (drop)="onDrop($event)"
         >
           <span class="text-sm font-medium text-slate-800">Seleccione el archivo para adjuntar</span>
           <span class="mt-1 text-xs text-slate-500">Un archivo, máximo 10 MB</span>
