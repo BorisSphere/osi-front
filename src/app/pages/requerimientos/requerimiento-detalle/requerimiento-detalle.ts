@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
@@ -8,6 +9,8 @@ import {
   Requerimiento,
   TIPOS_REQUERIMIENTO,
 } from '../../../core/models/requerimiento';
+import { EventoAuditoria } from '../../../core/models/auditoria';
+import { AuditoriaService } from '../../../core/services/auditoria.service';
 import { RequerimientoService } from '../../../core/services/requerimiento.service';
 import { ApprovalFlow, FlowStep } from '../../../shared/components/approval-flow/approval-flow';
 import { Button } from '../../../shared/components/button/button';
@@ -37,12 +40,13 @@ const toOptions = (values: string[]): SelectOption[] => values.map((value) => ({
 
 @Component({
   selector: 'app-requerimiento-detalle',
-  imports: [RouterLink, CanDirective, Button, Icon, Select, StatusBadge, ApprovalFlow, EmptyState],
+  imports: [DatePipe, RouterLink, CanDirective, Button, Icon, Select, StatusBadge, ApprovalFlow, EmptyState],
   templateUrl: './requerimiento-detalle.html',
 })
 export class RequerimientoDetalle {
   private readonly route = inject(ActivatedRoute);
   private readonly service = inject(RequerimientoService);
+  private readonly auditoriaService = inject(AuditoriaService);
 
   protected readonly tabs = TABS;
   protected readonly estadoTone = ESTADO_TONE;
@@ -62,6 +66,14 @@ export class RequerimientoDetalle {
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly error = signal('');
+  protected readonly eventosAuditoria = signal<EventoAuditoria[]>([]);
+  protected readonly cargandoAuditoria = signal(false);
+  protected readonly errorAuditoria = signal('');
+  private readonly auditoriaCargada = signal(false);
+
+  protected readonly eventosDecision = computed(() =>
+    this.eventosAuditoria().filter((evento) => evento.operacion === 'APROBACION' || evento.operacion === 'RECHAZO'),
+  );
 
   protected readonly tab = signal<Tab>('Resumen');
   protected readonly editing = signal(this.route.snapshot.queryParamMap.has('editar'));
@@ -110,6 +122,13 @@ export class RequerimientoDetalle {
     this.triedSave.set(false);
     this.error.set('');
     this.editing.set(true);
+  }
+
+  protected seleccionarTab(tab: Tab): void {
+    this.tab.set(tab);
+    if ((tab === 'Aprobaciones' || tab === 'Historial') && !this.auditoriaCargada() && !this.cargandoAuditoria()) {
+      this.cargarAuditoria();
+    }
   }
 
   protected cancelEdit(): void {
@@ -208,5 +227,21 @@ export class RequerimientoDetalle {
     this.fechaRequerida.set(r.fechaRequerida);
     this.descripcion.set(r.descripcion);
     this.detalleTecnico.set(r.detalleTecnico);
+  }
+
+  private cargarAuditoria(): void {
+    this.cargandoAuditoria.set(true);
+    this.errorAuditoria.set('');
+    this.auditoriaService.historial(this.id).subscribe({
+      next: (eventos) => {
+        this.eventosAuditoria.set(eventos);
+        this.auditoriaCargada.set(true);
+        this.cargandoAuditoria.set(false);
+      },
+      error: (err) => {
+        this.errorAuditoria.set(mensajeError(err));
+        this.cargandoAuditoria.set(false);
+      },
+    });
   }
 }
