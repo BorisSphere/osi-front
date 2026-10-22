@@ -52,11 +52,15 @@ pipeline {
 
                     robocopy $origen $destino /MIR /R:2 /W:2
 
-                    if ($LASTEXITCODE -ge 8) {
-                        throw "Error al copiar los archivos a NGINX: $LASTEXITCODE"
+                    $codigoRobocopy = $LASTEXITCODE
+
+                    if ($codigoRobocopy -ge 8) {
+                        throw "Error al copiar los archivos a NGINX: $codigoRobocopy"
                     }
 
-                    Write-Host "Despliegue de Angular completado."
+                    Write-Host "Despliegue de Angular completado correctamente."
+
+                    $global:LASTEXITCODE = 0
                 '''
             }
         }
