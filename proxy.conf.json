@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "http://localhost:8091/osinergmin/",
+    "target": "http://localhost:8092/osinergmin/",
     "secure": false
   }
 }
