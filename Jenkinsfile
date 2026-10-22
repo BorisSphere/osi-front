@@ -65,16 +65,20 @@ pipeline {
             }
         }
 
+        
         stage('Verificar despliegue') {
             steps {
                 powershell '''
-                    $respuesta = Invoke-WebRequest -Uri "http://localhost:8085/login" -UseBasicParsing
+                    $respuesta = Invoke-WebRequest `
+                        -Uri "http://127.0.0.1:8085/" `
+                        -UseBasicParsing `
+                        -Proxy $null
 
                     if ($respuesta.StatusCode -ne 200) {
-                        throw "La aplicación no responde correctamente."
+                        throw "NGINX no responde correctamente."
                     }
 
-                    Write-Host "NGINX responde correctamente."
+                    Write-Host "Frontend Angular disponible: HTTP 200"
                 '''
             }
         }
