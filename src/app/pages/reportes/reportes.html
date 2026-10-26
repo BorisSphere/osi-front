@@ -1,4 +1,14 @@
-<app-page-header title="Seguimiento de requerimientos" subtitle="Visibilidad del estado y del esfuerzo aprobado por aplicación." />
+<app-page-header title="Seguimiento de requerimientos" subtitle="Visibilidad del estado y del esfuerzo aprobado por aplicación.">
+  <!-- Descargas con los filtros del formulario (JasperReports en el back) -->
+  <button app-button variant="secondary" type="button" [disabled]="descargando() !== null" (click)="descargar('pdf')">
+    <app-icon name="document" class="h-4 w-4" [strokeWidth]="2" />
+    {{ descargando() === 'pdf' ? 'Generando...' : 'Descargar PDF' }}
+  </button>
+  <button app-button variant="secondary" type="button" [disabled]="descargando() !== null" (click)="descargar('xlsx')">
+    <app-icon name="chart" class="h-4 w-4" [strokeWidth]="2" />
+    {{ descargando() === 'xlsx' ? 'Generando...' : 'Descargar Excel' }}
+  </button>
+</app-page-header>
 
 <!-- Filtros -->
 <form

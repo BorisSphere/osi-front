@@ -2,8 +2,9 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { EstadoRequerimiento } from '../../core/models/estimacion';
 import { Seguimiento } from '../../core/models/reporte';
 import { ReporteService } from '../../core/services/reporte.service';
-import { mensajeDeError } from '../../core/utils/api-error';
+import { mensajeDeError, mensajeDeErrorBlob } from '../../core/utils/api-error';
 import { Button } from '../../shared/components/button/button';
+import { Icon } from '../../shared/components/icon/icon';
 import { PageHeader } from '../../shared/components/page-header/page-header';
 import { Select, SelectOption } from '../../shared/components/select/select';
 
@@ -18,7 +19,7 @@ const ESTADOS: { estado: EstadoRequerimiento; label: string; color: string; tarj
 /** Seguimiento y reportes (RF08). */
 @Component({
   selector: 'app-reportes',
-  imports: [PageHeader, Button, Select],
+  imports: [PageHeader, Button, Icon, Select],
   templateUrl: './reportes.html',
 })
 export class Reportes {
@@ -83,4 +84,44 @@ export class Reportes {
       },
     });
   }
+
+  /** Formato que se está generando (para mostrar "Generando..." y evitar dobles clics). */
+  protected readonly descargando = signal<'pdf' | 'xlsx' | null>(null);
+
+  /** Descarga el reporte (PDF o Excel) con los filtros que están en el formulario. */
+  protected descargar(formato: 'pdf' | 'xlsx'): void {
+    if (this.desde() && this.hasta() && this.desde() > this.hasta()) {
+      this.error.set('La fecha "Desde" no puede ser posterior a "Hasta".');
+      return;
+    }
+    this.error.set('');
+    this.descargando.set(formato);
+    this.service.exportar(formato, { desde: this.desde(), hasta: this.hasta(), aplicacion: this.aplicacion() }).subscribe({
+      next: (respuesta) => {
+        const nombre = nombreDeArchivo(respuesta.headers.get('Content-Disposition')) ?? `seguimiento.${formato}`;
+        guardarArchivo(respuesta.body!, nombre);
+        this.descargando.set(null);
+      },
+      error: async (err) => {
+        this.error.set(await mensajeDeErrorBlob(err, 'No se pudo generar el reporte.'));
+        this.descargando.set(null);
+      },
+    });
+  }
+}
+
+/** Nombre del archivo enviado por el back en Content-Disposition (attachment; filename="..."). */
+function nombreDeArchivo(contentDisposition: string | null): string | null {
+  const coincidencia = contentDisposition?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+  return coincidencia ? decodeURIComponent(coincidencia[1]) : null;
+}
+
+/** Dispara la descarga del archivo en el navegador. */
+function guardarArchivo(contenido: Blob, nombre: string): void {
+  const url = URL.createObjectURL(contenido);
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = nombre;
+  enlace.click();
+  URL.revokeObjectURL(url);
 }

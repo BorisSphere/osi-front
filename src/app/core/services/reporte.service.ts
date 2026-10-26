@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { FiltroSeguimiento, Seguimiento } from '../models/reporte';
@@ -16,6 +16,18 @@ export class ReporteService {
       if (valor) params = params.set(clave, valor);
     }
     return this.http.get<Seguimiento>('/api/reportes/seguimiento', { params });
+  }
+
+  /**
+   * Descarga el seguimiento en PDF o Excel (JasperReports en el back), con los mismos filtros.
+   * Se pide como blob con HttpClient para que el interceptor agregue el token.
+   */
+  exportar(formato: 'pdf' | 'xlsx', filtro: FiltroSeguimiento = {}): Observable<HttpResponse<Blob>> {
+    let params = new HttpParams().set('formato', formato);
+    for (const [clave, valor] of Object.entries(filtro)) {
+      if (valor) params = params.set(clave, valor);
+    }
+    return this.http.get('/api/reportes/seguimiento/exportar', { params, responseType: 'blob', observe: 'response' });
   }
 
   /** Códigos de aplicación para el filtro (los mismos que usa el dashboard). */
