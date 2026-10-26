@@ -21,3 +21,19 @@ export function mensajeDeError(err: unknown, porDefecto = 'Ocurrió un error. In
   }
   return porDefecto;
 }
+
+/**
+ * Igual que mensajeDeError, para peticiones con responseType 'blob' (descargas): ahí el cuerpo del
+ * error llega como Blob y hay que leerlo como JSON antes de buscar el mensaje.
+ */
+export async function mensajeDeErrorBlob(err: unknown, porDefecto?: string): Promise<string> {
+  if (err instanceof HttpErrorResponse && err.error instanceof Blob) {
+    try {
+      const body = JSON.parse(await err.error.text());
+      return mensajeDeError(new HttpErrorResponse({ error: body, status: err.status }), porDefecto);
+    } catch {
+      // El cuerpo no era JSON: se usa el mensaje genérico.
+    }
+  }
+  return mensajeDeError(err, porDefecto);
+}
