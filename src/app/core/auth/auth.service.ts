@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, catchError, finalize, firstValueFrom, map, of, shareReplay, tap, throwError } from 'rxjs';
+import { Observable, catchError, finalize, firstValueFrom, from, map, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
 import { Permiso, ROL_LABEL, User, UsuarioAuth } from '../models/user';
 import { LoginResponse } from './auth.models';
+import { EntraService } from './entra.service';
 
 /**
  * Sesión del usuario.
@@ -14,6 +15,7 @@ import { LoginResponse } from './auth.models';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly entra = inject(EntraService);
 
   private readonly accessToken = signal<string | null>(null);
   private refreshInFlight$: Observable<string> | null = null;
@@ -36,6 +38,15 @@ export class AuthService {
         tap((response) => this.setSession(response)),
         map(() => undefined),
       );
+  }
+
+  /** Intercambia el access token de Microsoft Entra ID por la sesión del sistema. */
+  loginEntra(): Observable<void> {
+    return from(this.entra.login()).pipe(
+      switchMap((accessToken) => this.http.post<LoginResponse>('/api/auth/entra', { accessToken })),
+      tap((response) => this.setSession(response)),
+      map(() => undefined),
+    );
   }
 
   /**
@@ -100,6 +111,7 @@ export class AuthService {
   }
 
   private clearSession(): void {
+    void this.entra.clear();
     this.accessToken.set(null);
     this.usuario.set(null);
   }

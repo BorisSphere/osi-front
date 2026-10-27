@@ -5,7 +5,7 @@ import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 
 /** Endpoints que no llevan Bearer ni disparan un refresh al recibir 401. */
-const PUBLIC_AUTH_URLS = ['/api/auth/login', '/api/auth/refresh', '/api/auth/logout'];
+const PUBLIC_AUTH_URLS = ['/api/auth/login', '/api/auth/entra', '/api/auth/refresh', '/api/auth/logout'];
 
 const withToken = (req: HttpRequest<unknown>, token: string | null) =>
   token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;

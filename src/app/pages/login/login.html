@@ -64,6 +64,21 @@
         </button>
       </form>
 
+      <div class="mt-6 flex items-center gap-3 text-sm text-slate-500">
+        <span class="h-px flex-1 bg-slate-200"></span>o<span class="h-px flex-1 bg-slate-200"></span>
+      </div>
+
+      <button type="button" (click)="loginMicrosoft()" [disabled]="loading()"
+        class="mt-6 flex w-full items-center justify-center gap-3 rounded-md border border-slate-300 bg-white py-3 font-medium text-slate-800 transition-colors hover:bg-slate-50 focus:ring-2 focus:ring-blue-600/40 focus:outline-none disabled:cursor-wait disabled:opacity-70">
+        <svg class="h-5 w-5" viewBox="0 0 21 21" aria-hidden="true">
+          <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+          <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+          <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+          <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+        </svg>
+        Iniciar sesión con Microsoft
+      </button>
+
       <div class="mt-6 text-center">
         <a href="#" (click)="$event.preventDefault()" class="text-sm font-medium text-blue-700 hover:underline">
           ¿Olvidó su contraseña?

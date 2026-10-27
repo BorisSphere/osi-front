@@ -23,6 +23,10 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "msal-redirect-bridge.min.js",
+                "input": "node_modules/@azure/msal-browser/lib/redirect-bridge"
               }
             ],
             "styles": [

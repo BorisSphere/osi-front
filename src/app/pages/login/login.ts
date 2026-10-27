@@ -50,6 +50,19 @@ export class Login {
     });
   }
 
+  protected loginMicrosoft(): void {
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.auth.loginEntra().subscribe({
+      next: () => this.router.navigateByUrl(this.returnUrl()),
+      error: (err: unknown) => {
+        this.loading.set(false);
+        this.error.set(this.errorMessage(err));
+      },
+    });
+  }
+
   protected invalid(control: 'username' | 'password'): boolean {
     const field = this.form.controls[control];
     return field.invalid && field.touched;
