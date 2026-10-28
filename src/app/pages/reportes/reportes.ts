@@ -1,6 +1,7 @@
+import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { EstadoRequerimiento } from '../../core/models/estimacion';
-import { Seguimiento } from '../../core/models/reporte';
+import { ReporteArchivado, Seguimiento } from '../../core/models/reporte';
 import { ReporteService } from '../../core/services/reporte.service';
 import { mensajeDeError, mensajeDeErrorBlob } from '../../core/utils/api-error';
 import { Button } from '../../shared/components/button/button';
@@ -19,7 +20,7 @@ const ESTADOS: { estado: EstadoRequerimiento; label: string; color: string; tarj
 /** Seguimiento y reportes (RF08). */
 @Component({
   selector: 'app-reportes',
-  imports: [PageHeader, Button, Icon, Select],
+  imports: [DatePipe, PageHeader, Button, Icon, Select],
   templateUrl: './reportes.html',
 })
 export class Reportes {
@@ -64,6 +65,7 @@ export class Reportes {
       },
     });
     this.consultar();
+    this.cargarArchivados();
   }
 
   protected consultar(): void {
@@ -107,6 +109,67 @@ export class Reportes {
         this.descargando.set(null);
       },
     });
+  }
+
+  // ---------- Archivo en Alfresco ----------
+
+  protected readonly archivados = signal<ReporteArchivado[]>([]);
+  protected readonly cargandoArchivados = signal(false);
+  protected readonly archivando = signal(false);
+  /** Mensaje de la sección de Alfresco (por ejemplo, "Alfresco no disponible"); no bloquea el resto. */
+  protected readonly avisoAlfresco = signal('');
+  protected readonly mensajeAlfresco = signal('');
+
+  /** Genera el PDF con los filtros del formulario y lo guarda en Alfresco. */
+  protected archivar(): void {
+    if (this.desde() && this.hasta() && this.desde() > this.hasta()) {
+      this.error.set('La fecha "Desde" no puede ser posterior a "Hasta".');
+      return;
+    }
+    this.error.set('');
+    this.mensajeAlfresco.set('');
+    this.archivando.set(true);
+    this.service.archivar({ desde: this.desde(), hasta: this.hasta(), aplicacion: this.aplicacion() }).subscribe({
+      next: (reporte) => {
+        this.mensajeAlfresco.set(`Reporte archivado en Alfresco: ${reporte.nombre}`);
+        this.archivando.set(false);
+        this.cargarArchivados();
+      },
+      error: (err) => {
+        this.avisoAlfresco.set(mensajeDeError(err, 'No se pudo archivar el reporte en Alfresco.'));
+        this.archivando.set(false);
+      },
+    });
+  }
+
+  protected cargarArchivados(): void {
+    this.cargandoArchivados.set(true);
+    this.service.archivados().subscribe({
+      next: (lista) => {
+        this.archivados.set(lista);
+        this.avisoAlfresco.set('');
+        this.cargandoArchivados.set(false);
+      },
+      error: (err) => {
+        // Sin respuesta de Alfresco no se muestra la lista anterior (los archivos siguen guardados allá).
+        this.archivados.set([]);
+        this.avisoAlfresco.set(mensajeDeError(err, 'No se pudo consultar Alfresco.'));
+        this.cargandoArchivados.set(false);
+      },
+    });
+  }
+
+  protected abrir(reporte: ReporteArchivado): void {
+    this.service.descargarArchivado(reporte.id).subscribe({
+      next: (respuesta) =>
+        guardarArchivo(respuesta.body!, nombreDeArchivo(respuesta.headers.get('Content-Disposition')) ?? reporte.nombre),
+      error: async (err) => this.avisoAlfresco.set(await mensajeDeErrorBlob(err, 'No se pudo abrir el reporte.')),
+    });
+  }
+
+  protected tamanio(bytes: number | null): string {
+    if (bytes == null) return '';
+    return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   }
 }
 

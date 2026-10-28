@@ -8,7 +8,19 @@
     <app-icon name="chart" class="h-4 w-4" [strokeWidth]="2" />
     {{ descargando() === 'xlsx' ? 'Generando...' : 'Descargar Excel' }}
   </button>
+  <!-- Guarda el PDF en el gestor documental (Alfresco) -->
+  <button app-button type="button" [disabled]="archivando()" (click)="archivar()">
+    <app-icon name="check-circle" class="h-4 w-4" [strokeWidth]="2" />
+    {{ archivando() ? 'Archivando...' : 'Archivar en Alfresco' }}
+  </button>
 </app-page-header>
+
+@if (mensajeAlfresco()) {
+  <div role="status" class="mt-4 flex items-start justify-between gap-3 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+    <span>{{ mensajeAlfresco() }}</span>
+    <button type="button" class="font-medium hover:underline" (click)="mensajeAlfresco.set('')">Cerrar</button>
+  </div>
+}
 
 <!-- Filtros -->
 <form
@@ -156,3 +168,61 @@
     </section>
   }
 }
+
+<!-- Reportes archivados en Alfresco (gestor documental) -->
+<section class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+  <div class="flex flex-wrap items-center justify-between gap-3 px-4 pt-4">
+    <div>
+      <h2 class="text-lg font-semibold text-slate-900">Reportes archivados en Alfresco</h2>
+      <p class="text-sm text-slate-500">PDF guardados con el botón "Archivar en Alfresco", del más reciente al más antiguo.</p>
+    </div>
+    <button app-button variant="secondary" type="button" [disabled]="cargandoArchivados()" (click)="cargarArchivados()">
+      {{ cargandoArchivados() ? 'Actualizando...' : 'Actualizar' }}
+    </button>
+  </div>
+
+  @if (avisoAlfresco()) {
+    <p role="alert" class="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      {{ avisoAlfresco() }}
+    </p>
+  }
+
+  <div class="mt-3 overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-900">
+        <tr>
+          <th class="px-4 py-3 font-semibold">Archivo</th>
+          <th class="px-4 py-3 font-semibold">Archivado</th>
+          <th class="px-4 py-3 font-semibold">Detalle</th>
+          <th class="px-4 py-3 text-right font-semibold">Tamaño</th>
+          <th class="px-4 py-3 font-semibold"><span class="sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 text-slate-700">
+        @for (r of archivados(); track r.id) {
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3 font-medium whitespace-nowrap text-slate-900">{{ r.nombre }}</td>
+            <td class="px-4 py-3 whitespace-nowrap tabular-nums">{{ r.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ r.descripcion }}</td>
+            <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ tamanio(r.tamanio) }}</td>
+            <td class="px-4 py-3 text-right">
+              <button app-button variant="secondary" type="button" (click)="abrir(r)">Abrir</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="px-4 py-8 text-center text-slate-500">
+              @if (cargandoArchivados()) {
+                Consultando Alfresco...
+              } @else if (avisoAlfresco()) {
+                No se puede mostrar la lista mientras Alfresco no responda.
+              } @else {
+                Todavía no hay reportes archivados.
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
